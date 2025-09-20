@@ -3,12 +3,14 @@
 <dl>
     <dt>Version:</dt><dd><code>0.1.0</code></dd>
     <dt>Author:</dt><dd>Josh Thomas</dd>
-    <dt>Status:</dt><dd>Draft / Pre-1.0 (breaking changes may occur between 0.x releases)</dd>
+    <dt>Status:</dt><dd>Draft / Pre-1.0</dd>
     <dt>Created:</dt><dd>2025-09-20</dd>
     <dt>Updated:</dt><dd>2025-09-20</dd>
 </dl>
 
-This document is the normative definition of the TagSpecs data model for expressing the static interface of Django template tags. It prescribes the required objects, fields, and semantics in a serialization-agnostic manner so that specifications can be expressed in TOML, JSON, YAML, or any other structured format. A companion JSON Schema in this repository illustrates one conforming encoding.
+This document is the normative definition of the TagSpecs data model for expressing the static interface of Django template tags. 
+
+It prescribes the required objects, fields, and semantics in a serialization-agnostic manner so that specifications can be expressed in TOML, JSON, YAML, or any other structured format. A companion JSON Schema in this repository illustrates one conforming encoding.
 
 > The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
@@ -50,7 +52,7 @@ This document is the normative definition of the TagSpecs data model for express
 
 ### 1.1 Abstract
 
-TagSpecs is a structured description language for Django template tags. A TagSpec document captures the static contract that Django leaves to tag implementations: block layout, expected intermediates, argument signatures, and semantic hints. By externalising this metadata, tooling can reason about templates without importing Python modules, enabling static inspection, validation, and documentation generation.
+TagSpecs is a structured description language for Django-style template tags. A TagSpec document captures the static contract that such engines leave to their tag implementations: block layout, expected intermediates, argument signatures, and semantic hints. By externalising this metadata, tooling can reason about templates without importing runtime modules, enabling static inspection, validation, and documentation generation.
 
 ### 1.2 Motivation
 
@@ -68,22 +70,29 @@ By describing a tag’s arguments, block structure, and semantics declaratively,
 
 #### 1.3.1 Goals
 
-- Describe tag identity, engine metadata, and Django compatibility constraints.
-- Specify the block structure of tags, including required end-tags and intermediate markers.
-- Define argument positions, kinds, and semantic hints for both positional and keyword-style parameters.
-- Serve as an input to static tooling such as linters, language servers, and refactoring tools.
-- Keep the schema lightweight—capture only the details static tooling needs, deliver them declaratively, and stay extensible through metadata (for example via `extra`).
+TagSpecs is meant to describe the essentials of a tag catalogue: which engine it targets, which modules it pulls from, and how each tag is structured. In practice, the format captures the opening syntax, the block layout (including intermediates and terminators), and the kinds of arguments a tag accepts.
+
+The document is designed as input for static tooling—linters, language servers, or refactoring tools—but it stays deliberately lightweight by keeping the schema declarative and relying on `extra` metadata for engine-specific details.
 
 #### 1.3.2 Future considerations
 
-- Extending TagSpecs to cover filter expressions and their argument semantics.
-- Capturing additional cross-tag relationships (for example, inheritance-aware diagnostics) while staying language-agnostic.
+As the format matures, there is room to model filter expressions and their argument semantics, and to track cross-tag relationships such as inheritance-aware diagnostics. These ideas remain outside the current scope, but the schema leaves space to incorporate them once there is shared experience with the core data model.
 
 #### 1.3.3 Non-goals
 
-- Expressing runtime rendering semantics or side effects of tags.
-- Encoding HTML, CSS, or JavaScript structure within template contents.
-- Serving as an executable specification for template rendering engines.
+TagSpecs does not attempt to describe runtime behaviour or side effects, nor does it model the full template expression grammar or front-end languages like HTML and CSS. It also is not an executable specification for template engines; the focus stays on static structure and metadata that complement, rather than replace, the runtime implementation.
+
+### 1.4 Rationale
+
+The specification favors a declarative contract because attempts to reconstruct tag rules from runtime ASTs or ad-hoc heuristics are brittle and quite frankly headache-inducing. Describing tags explicitly lets tools skip complex parsing and rely on stable metadata instead.
+
+Choosing static configuration introduces the risk of drifting out of sync with the runtime, but each library can annotate compatibility ranges and quirks with `requires_engine` and `extra`, keeping the core schema simple while leaving room for nuance. 
+
+The same trade-off applies to verbosity: encoding complex tag syntax as structured data takes effort, yet the goal is to make that work pay off in reusable, reliable tooling instead of replacing one opaque system with another.
+
+This approach also keeps the core tightly scoped. `extra` exists so producers can attach engine-specific notes without reopening the spec; argument names provide stable identifiers for overlays and diagnostics; and arrays preserve authoring order so positional interpretation and merges stay predictable.
+
+Finally, the JSON Schema published alongside this document is intended as a companion to the prose, making validation easy while leaving the narrative description as the normative reference.
 
 ## 2 Conventions and Formats
 
