@@ -25,7 +25,7 @@ This document is the normative definition of the TagSpecs data model for express
 - [3 Core Data Model](#3-core-data-model)
   - [3.1 TagSpec Document](#31-tagspec-document)
   - [3.2 Tag Libraries](#32-tag-libraries)
-  - [3.3 Tag Objects](#33-tag-objects)
+  - [3.3 Tag Definitions](#33-tag-definitions)
   - [3.4 Tag Types](#34-tag-types)
   - [3.5 Block Structure](#35-block-structure)
   - [3.6 Argument Model](#36-argument-model)
@@ -113,15 +113,15 @@ Each entry in `libraries` groups one or more tags exposed by a given importable 
 - `tags` — required array of Tag objects. The array itself may be empty, but tag names **MUST** be unique within the `{engine, module}` tuple.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers **MUST** ignore unknown members inside `extra`.
 
-### 3.3 Tag Objects
+### 3.3 Tag Definitions
 
-Each tag entry describes a single Django template tag.
+Each entry in `libraries.tags` describes a single Django template tag and maps to the `Tag` structure in the reference schema.
 
 - `name` — the canonical name of the tag as used in templates.
-- `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`.
-- `args` — array describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
-- `intermediates` — array of Intermediate objects describing markers admitted within the block. Only meaningful for `type = "block"`. Defaults to an empty array.
-- `end` — optional End object describing the closing tag of a block. Block tags **MUST** define `end`. Non-block tags **MUST NOT** provide `end`.
+- `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`. This maps to `Tag.type`/`TagType`.
+- `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
+- `intermediates` — array of `IntermediateTag` objects describing markers admitted within the block. Only meaningful for `type = "block"`. Defaults to an empty array.
+- `end` — optional `EndTag` object describing the closing tag of a block. Block tags **MUST** define `end`. `loader` tags **MAY** define `end` when the dialect supports block syntax. `standalone` tags **MUST NOT** provide `end`.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers **MUST** ignore unknown members inside `extra`.
 
 ### 3.4 Tag Types
@@ -134,12 +134,12 @@ Each tag entry describes a single Django template tag.
 
 ### 3.5 Block Structure
 
-The `end` object describes the closing token for block and block-capable loader tags:
+The `EndTag` object describes the closing token for block and block-capable loader tags:
 
 - `name` — string naming the closing tag (for example `"endfor"`).
 - `required` — boolean indicating whether the closing tag must appear explicitly. Defaults to `true`. When `false`, the closing token is optional and may be implied by template termination or a disallowed token.
 
-Intermediate markers allow block tags to model multi-part structures such as `if/elif/else`. Each object in `intermediates` contains:
+Intermediate markers allow block tags to model multi-part structures such as `if/elif/else`. Each `IntermediateTag` object contains:
 
 - `name` — the literal name of the marker.
 - `min` — optional non-negative integer specifying the minimum number of times the marker must appear. When omitted or `null`, there is no lower bound (effectively zero).
@@ -151,17 +151,17 @@ Intermediate markers allow block tags to model multi-part structures such as `if
 
 #### 3.6.1 Core Fields
 
-Every argument definition exposes the following members:
+Every `TagArg` definition exposes the following members:
 
 - `name` — identifier for the argument. For keyword-only arguments this corresponds to the literal keyword in the template.
 - `required` — boolean indicating whether the argument is mandatory. Defaults to `true`.
-- `type` — enumerated string describing how the argument can be supplied. `"both"` (default) means positional or keyword usage is accepted, `"positional"` restricts to positional usage, and `"keyword"` restricts to keyword usage.
-- `kind` — enumerated discriminator that selects the additional constraints described below.
+- `type` — enumerated string (`TagArgType`) describing how the argument can be supplied. `"both"` (default) means positional or keyword usage is accepted, `"positional"` restricts to positional usage, and `"keyword"` restricts to keyword usage.
+- `kind` — enumerated discriminator (`TagArgKind`) that selects the additional constraints described below.
 - `extra` — optional object for implementation-specific metadata such as analyser hints.
 
 #### 3.6.2 Argument Kinds
 
-The `kind` field conveys the syntactic class of the argument value. The following values are defined:
+The `TagArg.kind` field conveys the syntactic class of the argument value. The following values are defined:
 
 `any` — value may be any Django template expression or literal.
 
