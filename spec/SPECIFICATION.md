@@ -54,19 +54,34 @@ TagSpecs is a structured description language for Django template tags. A TagSpe
 
 ### 1.2 Motivation
 
-Django’s template engine intentionally keeps tag semantics flexible: the core parser produces a flat node list, and each tag implementation interprets its slice of tokens, often acting as a miniature compiler. While conventions exist (for example, end tags typically start with `end`), nothing enforces them—tags can reshape scope, emit new blocks, or rewrite output arbitrarily as long as they return a string. This openness makes static analysis almost impossible: heuristics cannot reliably infer block structure or argument meaning, and even Django’s own tags disagree on conventions. TagSpecs introduce an explicit, machine-readable contract so tools can recover the structural and semantic information that runtime code currently hides.
+Django’s template engine intentionally keeps tag semantics flexible: the core parser produces a flat node list, and each tag implementation interprets its slice of tokens, often acting as a miniature compiler. Conventions exist (for example, end tags often start with `end`), but the engine stays deliberately hands-off—each tag is responsible for parsing its arguments, managing its node list, and negotiating how rendering unfolds. That separation of responsibilities is a powerful extensibility hook, yet it also makes static inspection of tag syntax and semantics uniquely challenging.
+
+That variability makes heuristics brittle at best. Reverse-engineering the intent of even Django’s built-in tags requires bespoke knowledge of each implementation. TagSpecs introduce an explicit, machine-readable contract so tools can recover the structural and semantic information that runtime code currently hides without guesswork.
+
+The format was born out of building the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface template diagnostics statically, without importing user code or executing the Django runtime. Template tags commonly signal misuse by raising `TemplateSyntaxError`, `VariableDoesNotExist`, or other exceptions during rendering—far too late for editor tooling. 
+
+Publishing the specification separately ensures the format is not tied solely to that project: other editors, linters, documentation workflows, or bespoke tools can reuse it, and broader community feedback can evolve the vocabulary over time. The hope is that a shared schema makes it easier for others to build their own analysis tooling without reinventing this foundation.
+
+By describing a tag’s arguments, block structure, and semantics declaratively, TagSpecs supply just enough metadata for a language server (or any static tool) to validate usage, offer completions, and highlight errors without relying on runtime behaviour.
 
 ### 1.3 Scope
+
+#### 1.3.1 Goals
 
 - Describe tag identity, engine metadata, and Django compatibility constraints.
 - Specify the block structure of tags, including required end-tags and intermediate markers.
 - Define argument positions, kinds, and semantic hints for both positional and keyword-style parameters.
-- Serve as an input to static tooling such as linters, documentation generators, and refactoring assistants.
+- Serve as an input to static tooling such as linters, language servers, and refactoring tools.
+- Keep the schema lightweight—capture only the details static tooling needs, deliver them declaratively, and stay extensible through metadata (for example via `extra`).
 
-### 1.4 Non-goals
+#### 1.3.2 Future considerations
+
+- Extending TagSpecs to cover filter expressions and their argument semantics.
+- Capturing additional cross-tag relationships (for example, inheritance-aware diagnostics) while staying language-agnostic.
+
+#### 1.3.3 Non-goals
 
 - Expressing runtime rendering semantics or side effects of tags.
-- Defining the full Django template expression grammar or filter system.
 - Encoding HTML, CSS, or JavaScript structure within template contents.
 - Serving as an executable specification for template rendering engines.
 
@@ -74,12 +89,18 @@ Django’s template engine intentionally keeps tag semantics flexible: the core 
 
 ### 2.1 Terminology
 
+- **TagSpec document**: a catalogue that describes one or more tag libraries for a template engine.
 - **Tag**: a Django template directive such as `if`, `for`, or `include`.
 - **Block tag**: a tag that encloses a region and is closed by a matching end tag.
-- **Intermediate**: a marker that can appear between the opener and the end of a block (for example `elif` or `else`).
-- **Argument**: a syntactic element that appears in the tag declaration and is described by its `kind`.
+- **Loader tag**: a tag that fetches or includes other templates and may optionally behave like a block tag.
+- **Standalone tag**: a tag that does not wrap body content and has no end tag.
+- **End tag**: the closing directive for a block or block-capable loader tag (for example `endfor`).
+- **Intermediate tag**: a marker that can appear between the opener and the end of a block (for example `elif` or `else`).
+- **Tag argument**: a syntactic element that appears in the tag declaration and is described by its `kind`.
 - **Tag library**: a group of tag definitions published by a single importable module.
 - **Engine**: the template dialect that defines parsing and evaluation rules (for example `django`, `jinja2`).
+- **Producer**: the author or repository that maintains a TagSpec document (for example, a library shipping specs, or a team curating project overrides).
+- **Consumer**: a tool that reads TagSpec documents (for example, validators, language servers, editors).
 
 ### 2.2 Serialization Formats
 
@@ -115,12 +136,12 @@ Each entry in `libraries` groups one or more tags exposed by a given importable 
 
 ### 3.3 Tag Definitions
 
-Each entry in `libraries.tags` describes a single Django template tag and maps to the `Tag` structure in the reference schema.
+Each entry in `libraries.tags` describes a single template tag exposed by the engine and maps to the `Tag` structure in the reference schema.
 
 - `name` — the canonical name of the tag as used in templates.
 - `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`. This maps to `Tag.type`/`TagType`.
 - `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
-- `intermediates` — array of `IntermediateTag` objects describing markers admitted within the block. Only meaningful for `type = "block"`. Defaults to an empty array.
+- `intermediates` — array of `IntermediateTag` objects describing markers admitted within the tag body. Only meaningful when the tag behaves as a block (for example `type = "block"` or `type = "loader"` with block support). Defaults to an empty array.
 - `end` — optional `EndTag` object describing the closing tag of a block. Block tags **MUST** define `end`. `loader` tags **MAY** define `end` when the dialect supports block syntax. `standalone` tags **MUST NOT** provide `end`.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers **MUST** ignore unknown members inside `extra`.
 
@@ -159,35 +180,45 @@ Every `TagArg` definition exposes the following members:
 - `kind` — enumerated discriminator (`TagArgKind`) that selects the additional constraints described below.
 - `extra` — optional object for implementation-specific metadata such as analyser hints.
 
-#### 3.6.2 Argument Kinds
+#### 3.6.2 Argument name
+
+`TagArg.name` provides a stable identifier for overlays, diagnostics, and metadata. Producers SHOULD keep the names descriptive, but consumers MUST treat them as opaque keys.
+
+#### 3.6.3 Argument ordering and type
+
+Arguments appear in the order they are written in template syntax. `TagArg.type` indicates whether an argument may be positional, keyword, or both. Engines that follow Python-style semantics (for example Django) **SHOULD** keep positional arguments before keyword arguments. Consumers MAY rely on this order when interpreting positional arguments.
+
+#### 3.6.4 Argument kinds
 
 The `TagArg.kind` field conveys the syntactic class of the argument value. The following values are defined:
 
-`any` — value may be any Django template expression or literal.
+`any` — value may be any template expression or literal recognised by the engine.
 
-`assignment` — introduces one or more `name = expression` bindings (for example `{% with user as person %}` or `{% url ... as urlvar %}`). Producers **MAY** add a `hint` drawn from the assignment hints below.
+`assignment` — introduces one or more `name = expression` bindings (for example `{% with user as person %}` or `{% url ... as urlvar %}`). Producers **MAY** record additional metadata about the binding behaviour inside `extra`.
 
-`choice` — restricts the argument to a closed set of string literals and **MUST** provide a non-empty `choices` array of allowed values.
+`choice` — restricts the argument to a closed set of string literals. Producers **SHOULD** list the allowed literals under `extra.choices`.
 
-`literal` — indicates that the argument is a literal token. Producers **MAY** provide a `hint` conveying the semantic meaning of the literal.
+`literal` — indicates that the argument is a literal token. Producers **MAY** record semantic meaning for the literal under `extra`.
 
-`modifier` — represents boolean-style switches that alter behaviour (for example `reversed` on `for`). When present, the optional `affects` member communicates the scope impacted by the modifier.
+`modifier` — represents boolean-style switches that alter behaviour (for example `reversed` on `for`). Producers **MAY** describe the affected scope under `extra`.
 
 `syntax` — models mandatory syntactic tokens that have no runtime value (for example the `in` keyword in `{% for x in items %}`).
 
-`variable` — denotes a Django template variable or filter expression.
 
-Unless declared otherwise by the implementation, arguments are evaluated left-to-right in the order declared by the array.
+`variable` — denotes a template variable or filter expression recognised by the engine.
 
-#### 3.6.3 Semantic Hints
+#### 3.6.5 Recommended metadata
 
-Assignment arguments may provide a `hint` value to signal the intended binding behaviour. Recognised values are `"context_extension"` (merges new variables into the context), `"variable_capture"` (captures rendered output into a variable), and `"parameter_passing"` (forwards variables to nested rendering such as `{% include %}`).
+Tag arguments **MAY** carry additional semantics using the `extra` object. The following suggestions show how producers can attach additional metadata when it helps downstream tooling:
 
-Literal arguments may provide a `hint` to communicate what resource or identifier the literal references. Recognised values are `"url_name"`, `"template_path"`, `"block_name"`, `"staticfile"`, `"library_name"`, `"cache_key"`, and `"setting_name"`.
+- `kind = "assignment"` → `extra.hint` describing how bound values behave (examples: `"context_extension"`, `"variable_capture"`, `"parameter_passing"`).
+- `kind = "literal"` → `extra.hint` naming what the literal references (examples: `"url_name"`, `"template_path"`, `"block_name"`, `"staticfile"`, `"library_name"`, `"cache_key"`, `"setting_name"`).
+- `kind = "choice"` → `extra.choices` listing permitted literal values.
+- `kind = "modifier"` → `extra.affects` indicating which evaluation scope changes (examples: `"context"`, `"iteration"`, `"rendering"`, `"inheritance"`).
 
-Modifier arguments may provide an `affects` value identifying the part of evaluation they influence. Recognised values are `"context"`, `"iteration"`, `"rendering"`, and `"inheritance"`.
+Engines MAY introduce additional keys or values as needed; the names above are guidelines rather than an exhaustive vocabulary.
 
-Consumers **MUST** ignore unknown hint values while preserving them for round-tripping, enabling future extension without breaking existing tooling.
+Consumers **MUST** ignore unknown keys inside `extra` while preserving them for round-tripping, enabling future extension without breaking existing tooling.
 
 When the predefined hint enums are insufficient, producers **MAY** convey richer semantics inside the `extra` member; consumers **SHOULD** surface such data opportunistically while remaining tolerant of its absence.
 
@@ -197,7 +228,7 @@ Consumers **MUST** interpret omitted members according to these defaults, regard
 
 - `engine` defaults to `"django"`.
 - `extends` defaults to an empty array.
-- `args`, `intermediates`, and `choices` default to empty arrays.
+- `args` and `intermediates` default to empty arrays.
 - `end.required` defaults to `true`.
 - `arg.required` defaults to `true`; `arg.type` defaults to `"both"`.
 - `intermediate.position` defaults to `"any"`; `min` and `max` default to `null` (meaning unspecified).
@@ -218,7 +249,6 @@ A consumer **MUST** reject a TagSpec document if any of the following hold:
 - `type = "block"` but `end` is missing or `end.name` is empty.
 - `type = "standalone"` yet `end` or `intermediates` are supplied.
 - `intermediate.max` is provided and less than `intermediate.min`.
-- `arg.kind = "choice"` and `choices` is absent or empty.
 - Multiple tags share the same `{engine, library.module, name}` identity within a document.
 
 Consumers **SHOULD** surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
@@ -229,16 +259,17 @@ TagSpecs are designed for forward compatibility:
 
 - Unknown object members at any level **MUST** be preserved during round-tripping.
 - Producers **MAY** introduce vendor-specific metadata on any object. Using the provided `extra` member is RECOMMENDED to minimise clashes, but consumers **MUST** tolerate additional fields even when they appear elsewhere.
-- New `kind`, `hint`, or `affects` values may be introduced in future revisions. Consumers **MUST** ignore values they do not recognise while retaining them.
+- New `TagArg.kind` values may be introduced in future revisions. Consumers **MUST** ignore kinds they do not recognise while retaining them.
+- Additional metadata keys or values under `extra.*` (including new `hint`, `affects`, or `choices` vocabularies) may appear at any time. Consumers **MUST** preserve unknown keys and values for round-tripping.
 - Additional top-level fields may appear in future versions and **MUST NOT** cause validation failures.
 
 ## 6 Discovery and Composition
 
 Productions may combine multiple TagSpec documents. Consumers **SHOULD** apply the following discovery order:
 
-1. Inline configuration within `pyproject.toml` under `[tool.djts]`.
-2. `djts.toml` at the project root.
-3. `.djts.toml` at the project root.
+1. Inline configuration within `pyproject.toml` under `[tool.djtagspecs]`.
+2. `djtagspecs.toml` at the project root.
+3. `.djtagspecs.toml` at the project root.
 4. Installed catalogs packaged with libraries.
 
 When the `extends` array is present, consumers **MUST** resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). Overlay documents **SHOULD** merge fields by the identity rules in §3.8, with later documents overriding earlier values on key collision.
@@ -246,14 +277,14 @@ When the `extends` array is present, consumers **MUST** resolve each entry in or
 An inline configuration uses the same structure as standalone files. For example:
 
 ```toml
-[tool.djts]
+[tool.djtagspecs]
 version = "0.1.0"
 engine = "django"
 
-[[tool.djts.libraries]]
+[[tool.djtagspecs.libraries]]
 module = "myproject.templatetags.blog"
 
-[[tool.djts.libraries.tags]]
+[[tool.djtagspecs.libraries.tags]]
 name = "hero"
 type = "block"
 ```
@@ -264,10 +295,10 @@ Implementations may claim one or more of the following conformance levels:
 
 - **Reader** — parses TagSpec documents, applies defaults, and enforces the validation rules in §4.
 - **Writer** — emits valid TagSpec documents and assures round-trip preservation of unknown members.
-- **Validator** — applies TagSpecs to Django template sources, producing diagnostics for structural violations.
+- **Validator** — applies TagSpecs to template sources for the declared engine, producing diagnostics for structural violations.
 - **Catalog** — bundles TagSpec documents with libraries and exposes discovery metadata.
 
-A conforming implementation **MUST** document which levels it satisfies and the range of specification versions it supports.
+A conforming implementation is **RECOMMENDED** to document which levels it satisfies and the range of specification versions it supports.
 
 ## 8 Examples
 
@@ -416,14 +447,14 @@ affects = "context"
 ```
 
 
-## 9 Reference Schema
+## 9 Reference Schema and Implementation
 
 A machine-readable JSON Schema for TagSpecs is published alongside this document at `spec/schema.json`. Producers **SHOULD** validate documents against this schema before distribution. Consumers **SHOULD** treat the schema as a companion reference but prefer the prose specification when conflicts arise.
 
-## 10 Reference Implementation
+A reference implementation of the data model is provided in `src/django_tagspecs/models.py` using Pydantic. 
 
-A reference implementation of the data model is provided in `src/django_tagspecs/models.py` using Pydantic. The canonical runtime consumer lives in the `django-language-server` project; the models in this repository mirror that implementation and illustrate defaulting behaviour, validation, and normalisation of TagSpec documents.
+The canonical runtime consumer lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) project; the models in this repository mirror that implementation and illustrate defaulting behaviour, validation, and normalisation of TagSpec documents.
 
-## 11 Copyright
+## 10 Copyright
 
 This document has been placed in the public domain per the Creative Commons CC0 1.0 Universal license (http://creativecommons.org/publicdomain/zero/1.0/deed).
