@@ -55,7 +55,7 @@ TagSpecs is a structured description language for Django-style template tags. A 
 
 ## Motivation
 
-Django’s template engine intentionally keeps tag semantics flexible: the core parser produces a flat node list, and each tag implementation interprets its slice of tokens, often acting as a miniature compiler. Conventions exist (for example, end tags often start with `end`), but the engine stays deliberately hands-off—each tag is responsible for parsing its arguments, managing its node list, and negotiating how rendering unfolds. That separation of responsibilities is a powerful extensibility hook, yet it also makes static inspection of tag syntax and semantics uniquely challenging.
+Django’s template engine intentionally keeps tag semantics flexible: the core parser produces a flat node list, and each tag implementation interprets its slice of tokens, often acting as a miniature compiler. Conventions exist (for example, end tags often start with `end`), but the engine stays deliberately hands-off. Each tag is responsible for parsing its arguments, managing its node list, and negotiating how rendering unfolds. That separation of responsibilities is a powerful extensibility hook, yet it also makes static inspection of tag syntax and semantics uniquely challenging.
 
 That variability makes heuristics brittle at best. Reverse-engineering the intent of even Django’s built-in tags requires bespoke knowledge of each implementation. TagSpecs introduce an explicit, machine-readable contract so tools can recover the structural and semantic information that runtime code currently hides without guesswork.
 
