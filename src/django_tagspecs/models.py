@@ -28,7 +28,7 @@ class Tag(BaseModel):
     tagtype: TagType = Field(alias="type")
     end: EndTag | None = Field(None)
     intermediates: list[IntermediateTag] = Field(default_factory=list)
-    args: list[Arg] = Field(default_factory=list)
+    args: list[TagArg] = Field(default_factory=list)
     extra: dict[str, Any] | None = Field(None)
 
 
@@ -52,15 +52,15 @@ class EndTag(BaseModel):
     extra: dict[str, Any] | None = Field(None)
 
 
-class Arg(BaseModel):
+class TagArg(BaseModel):
     name: str
     required: bool = Field(True)
-    argtype: ArgType = Field("both", alias="type")
-    kind: ArgKind
+    argtype: TagArgType = Field("both", alias="type")
+    kind: TagArgKind
     extra: dict[str, Any] | None = Field(None)
 
 
-ArgType = Literal["both", "positional", "keyword"]
-ArgKind = Literal[
+TagArgType = Literal["both", "positional", "keyword"]
+TagArgKind = Literal[
     "any", "assignment", "choice", "literal", "modifier", "syntax", "variable"
 ]
