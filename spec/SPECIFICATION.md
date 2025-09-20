@@ -153,7 +153,10 @@ Each entry in `libraries.tags` describes a single template tag exposed by the en
 - `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`. This maps to `TagType`.
 - `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
 - `intermediates` — array of `IntermediateTag` objects describing markers admitted within the tag body. Only meaningful when the tag behaves as a block (for example `type = "block"` or `type = "loader"` with block support). Defaults to an empty array.
-- `end` — optional `EndTag` object describing the closing tag of a block. Block tags MUST define `end`. `loader` tags MAY define `end` when the dialect supports block syntax. `standalone` tags MUST NOT provide `end`.
+- `end` — optional `EndTag` object describing the closing tag of a block. 
+    - `block` tags MUST define `end`. 
+    - `loader` tags MAY define `end` when the tag implementation supports block syntax. 
+    - `standalone` tags MUST NOT provide `end`.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers MUST ignore unknown members inside `extra`.
 
 ### Tag Types
