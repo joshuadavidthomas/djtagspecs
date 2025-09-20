@@ -69,7 +69,7 @@ By describing a tag’s arguments, block structure, and semantics declaratively,
 
 ## Rationale
 
-The specification favors a declarative contract because attempts to reconstruct tag rules from runtime ASTs or ad-hoc heuristics are brittle and quite frankly headache-inducing. Describing tags explicitly lets tools skip complex parsing and rely on stable metadata instead.
+The specification favors a declarative contract because attempts to reconstruct tag rules from runtime ASTs or ad-hoc heuristics are brittle and, quite frankly, headache-inducing. Describing tags explicitly lets tools skip complex parsing and rely on stable metadata instead.
 
 Choosing static configuration introduces the risk of drifting out of sync with the runtime, but each library can annotate compatibility ranges and quirks with `requires_engine` and `extra`, keeping the core schema simple while leaving room for nuance. 
 
