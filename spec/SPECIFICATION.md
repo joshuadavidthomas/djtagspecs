@@ -8,9 +8,7 @@
     <dt>Updated:</dt><dd>2025-09-20</dd>
 </dl>
 
-This document is the normative definition of the TagSpecs data model for expressing the static interface of Django-style template tags. 
-
-It prescribes the required objects, fields, and semantics in a serialization-agnostic manner so that specifications can be expressed in TOML, JSON, YAML, or any other structured format. A companion JSON Schema in this repository illustrates one conforming encoding.
+This document is the normative definition of the TagSpecs data model for expressing the static interface of Django-style template tags. It prescribes the required objects, fields, and semantics in a serialization-agnostic manner so that specifications can be expressed in TOML, JSON, YAML, or any other structured format.
 
 > The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
