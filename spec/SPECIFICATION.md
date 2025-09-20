@@ -1,10 +1,12 @@
 # TagSpecs
 
-:Version: `0.1.0`
-:Author: Josh Thomas
-:Status: Draft / Pre-1.0 (breaking changes may occur between 0.x releases)
-:Created: 2025-09-20
-:Updated: 2025-09-20
+<dl>
+    <dt>Version:</dt><dd><code>0.1.0</code></dd>
+    <dt>Author:</dt><dd>Josh Thomas</dd>
+    <dt>Status:</dt><dd>Draft / Pre-1.0 (breaking changes may occur between 0.x releases)</dd>
+    <dt>Created:</dt><dd>2025-09-20</dd>
+    <dt>Updated:</dt><dd>2025-09-20</dd>
+</dl>
 
 This document is the normative definition of the TagSpecs data model for expressing the static interface of Django template tags. It prescribes the required objects, fields, and semantics in a serialization-agnostic manner so that specifications can be expressed in TOML, JSON, YAML, or any other structured format. A companion JSON Schema in this repository illustrates one conforming encoding.
 
