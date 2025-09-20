@@ -6,11 +6,14 @@ set unstable := true
 default:
     @just --list --list-submodules
 
+bootstrap:
+    uv sync
+
 bumpver *ARGS:
     uvx bumpver {{ ARGS }}
 
 generate-schema:
-    uv run -m django_tagspecs generate-schema -o spec/schema.json
+    djts generate-schema -o spec/schema.json
 
 # run pre-commit on all files
 lint:

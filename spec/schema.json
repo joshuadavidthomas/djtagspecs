@@ -1,60 +1,5 @@
 {
   "$defs": {
-    "Arg": {
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "required": {
-          "default": true,
-          "title": "Required",
-          "type": "boolean"
-        },
-        "type": {
-          "default": "both",
-          "enum": [
-            "both",
-            "positional",
-            "keyword"
-          ],
-          "title": "Type",
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "any",
-            "assignment",
-            "choice",
-            "literal",
-            "modifier",
-            "syntax",
-            "variable"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "extra": {
-          "anyOf": [
-            {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Extra"
-        }
-      },
-      "required": [
-        "name",
-        "kind"
-      ],
-      "title": "Arg",
-      "type": "object"
-    },
     "EndTag": {
       "properties": {
         "name": {
@@ -182,7 +127,7 @@
         },
         "args": {
           "items": {
-            "$ref": "#/$defs/Arg"
+            "$ref": "#/$defs/TagArg"
           },
           "title": "Args",
           "type": "array"
@@ -206,6 +151,61 @@
         "type"
       ],
       "title": "Tag",
+      "type": "object"
+    },
+    "TagArg": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "default": "both",
+          "enum": [
+            "both",
+            "positional",
+            "keyword"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "any",
+            "assignment",
+            "choice",
+            "literal",
+            "modifier",
+            "syntax",
+            "variable"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "TagArg",
       "type": "object"
     },
     "TagLibrary": {

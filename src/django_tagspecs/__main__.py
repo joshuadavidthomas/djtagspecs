@@ -3,16 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Annotated
-from typing import Optional
-from typing import override
 
 import typer
 from pydantic.json_schema import GenerateJsonSchema
 from pydantic.json_schema import JsonSchemaMode
 from pydantic_core import CoreSchema
 
+from django_tagspecs._typing import override
 from django_tagspecs.models import TagSpec
-
 
 app = typer.Typer(
     name="djts",
@@ -24,8 +22,6 @@ app = typer.Typer(
 @app.callback()
 def cli() -> None:
     """Command-line interface for Django TagSpecs."""
-    # The callback intentionally does nothing; subcommands provide functionality.
-    return None
 
 
 class GenerateTagSpecJsonSchema(GenerateJsonSchema):
@@ -36,10 +32,12 @@ class GenerateTagSpecJsonSchema(GenerateJsonSchema):
         return json_schema
 
 
-@app.command("generate-schema", help="Emit the TagSpec JSON Schema to stdout or a file.")
+@app.command(
+    "generate-schema", help="Emit the TagSpec JSON Schema to stdout or a file."
+)
 def generate_schema(
     output: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             "--output",
             "-o",
@@ -62,9 +60,5 @@ def generate_schema(
         output.write_text(payload, encoding="utf-8")
 
 
-def main() -> None:
-    app()
-
-
 if __name__ == "__main__":
-    main()
+    app()
