@@ -167,9 +167,12 @@ Each entry in `libraries.tags` describes a single template tag exposed by the en
 
 #### Loader Tag
 
-`loader` tags execute at parse time to load additional templates or components. They may behave like standalone tags (for example `include`) or like block tags when the implementation accepts block syntax (for example third-party component tags that wrap an external template). 
+`loader` tags execute at runtime to load additional templates or components. 
+
+They may behave like standalone tags (for example `include`) or like block tags when the implementation accepts block syntax (for example third-party component tags that wrap an external template). 
 
 Loader tags MAY provide `intermediates` and `end` when the runtime implementation recognises them.
+
 #### Standalone Tag
 
 `standalone` tags occupy a single template node and have no matching end tag. Examples include `csrf_token`, `now`, and `url`.
