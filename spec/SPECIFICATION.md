@@ -96,7 +96,7 @@ TagSpecs does not attempt to describe runtime behaviour or side effects, nor doe
 - **TagSpec document**: a catalogue that describes one or more tag libraries for a template engine.
 - **Engine**: the template dialect that defines parsing and evaluation rules (for example `django`, `jinja2`).
 - **Tag library**: a group of tag definitions published by a single importable module.
-- **Tag**: a Django template directive such as `if`, `for`, or `include`.
+- **Tag**: a engine template directive such as `if`, `for`, or `include`.
     - **Block tag**: a tag that encloses a region and is closed by a matching end tag.
     - **Loader tag**: a tag that fetches or includes other templates and may optionally behave like a block tag.
     - **Standalone tag**: a tag that does not wrap body content and has no end tag.
