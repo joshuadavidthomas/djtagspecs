@@ -51,7 +51,7 @@ def generate_schema(
     ] = None,
 ) -> None:
     schema = TagSpec.model_json_schema(schema_generator=GenerateTagSpecJsonSchema)
-    payload = json.dumps(schema, indent=2)
+    payload = json.dumps(schema, indent=2, sort_keys=True)
 
     if output is None:
         typer.echo(payload)
