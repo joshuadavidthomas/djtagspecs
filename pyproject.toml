@@ -1,0 +1,17 @@
+[project]
+name = "django-tagspecs"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Josh", email = "josh@joshthomas.dev" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.11.9",
+    "typer>=0.19.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.7.21,<0.8"]
+build-backend = "uv_build"

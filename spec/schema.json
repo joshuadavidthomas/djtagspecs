@@ -1,0 +1,315 @@
+{
+  "$defs": {
+    "Arg": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "default": "both",
+          "enum": [
+            "both",
+            "positional",
+            "keyword"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "any",
+            "assignment",
+            "choice",
+            "literal",
+            "modifier",
+            "syntax",
+            "variable"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "Arg",
+      "type": "object"
+    },
+    "EndTag": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "EndTag",
+      "type": "object"
+    },
+    "IntermediateTag": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "position": {
+          "default": "any",
+          "enum": [
+            "any",
+            "last"
+          ],
+          "title": "Position",
+          "type": "string"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "IntermediateTag",
+      "type": "object"
+    },
+    "Tag": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "block",
+            "loader",
+            "standalone"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EndTag"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "intermediates": {
+          "items": {
+            "$ref": "#/$defs/IntermediateTag"
+          },
+          "title": "Intermediates",
+          "type": "array"
+        },
+        "args": {
+          "items": {
+            "$ref": "#/$defs/Arg"
+          },
+          "title": "Args",
+          "type": "array"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "Tag",
+      "type": "object"
+    },
+    "TagLibrary": {
+      "properties": {
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "requires_engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requires Engine"
+        },
+        "tags": {
+          "items": {
+            "$ref": "#/$defs/Tag"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "extra": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extra"
+        }
+      },
+      "required": [
+        "module",
+        "tags"
+      ],
+      "title": "TagLibrary",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "version": {
+      "title": "Version",
+      "type": "string"
+    },
+    "engine": {
+      "default": "django",
+      "title": "Engine",
+      "type": "string"
+    },
+    "requires_engine": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requires Engine"
+    },
+    "extends": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Extends",
+      "type": "array"
+    },
+    "libraries": {
+      "items": {
+        "$ref": "#/$defs/TagLibrary"
+      },
+      "title": "Libraries",
+      "type": "array"
+    },
+    "extra": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Extra"
+    }
+  },
+  "required": [
+    "version",
+    "libraries"
+  ],
+  "title": "TagSpec",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
