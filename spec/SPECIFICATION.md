@@ -38,10 +38,10 @@ This document is the normative definition of the TagSpecs data model for express
         - [Extra metadata](#extra-metadata)
     - [Defaults and Normalization](#defaults-and-normalization)
     - [Identity and Ordering](#identity-and-ordering)
-- [Validation](#validation)
-- [Extensibility and Forward Compatibility](#extensibility-and-forward-compatibility)
-- [Discovery and Composition](#discovery-and-composition)
-- [Conformance](#conformance)
+    - [Validation](#validation)
+    - [Extensibility and Forward Compatibility](#extensibility-and-forward-compatibility)
+    - [Discovery and Composition](#discovery-and-composition)
+    - [Conformance](#conformance)
 - [Examples](#examples)
   - [Block Tag: `for`](#block-tag-for)
   - [Loader Tag: `include`](#loader-tag-include)
@@ -127,7 +127,7 @@ The root document captures catalog-wide metadata and the set of tag libraries it
 
 - `version` — required string identifying the TagSpecs specification version implemented by this document (for example `"0.1.0"`). Consumers MUST reject documents that advertise a version they do not understand.
 - `engine` — optional string identifier for the template dialect (for example `"django"`, `"jinja2"`). When omitted, consumers MUST treat the engine as `"django"`. This edition of the specification defines behaviour only for the Django dialect; non-Django engines SHOULD supply additional documentation clarifying any divergent semantics.
-- `requires_engine` — optional string constraining the supported engine versions (for Django, a PEP 440 version specifier). Consumers SHOULD honour this constraint when selecting specs for analysis.
+- `requires_engine` — optional string constraining engine versions for the entire catalog (PEP 440 for Django). When omitted, the catalog is assumed to work with all versions recognised by the declared engine. Any child object that omits its own `requires_engine` inherits this value.
 - `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon. Entries are processed in order before applying the current document.
 - `libraries` — array of TagLibrary objects. The array itself may be empty, but library modules MUST be unique within a document.
 - `extra` — optional object for catalog-level metadata not otherwise covered by this specification (for example documentation URLs, provenance, or tool-specific flags).
@@ -139,8 +139,8 @@ Unrecognised top-level members MAY appear. Consumers SHOULD ignore them while pr
 Each entry in `libraries` groups one or more tags exposed by a given importable module.
 
 - `module` — required dotted Python import path that contributes tags (for example `"django.template.defaulttags"`).
-- `requires_engine` — optional string constraining the supported engine versions for this module. When omitted, consumers SHOULD fall back to the catalog-level constraint.
-- `tags` — required array of Tag objects. The array itself may be empty, but tag names MUST be unique within the `{engine, module}` tuple.
+- `requires_engine` — optional string overriding the catalog-level constraint for this module. If absent, consumers SHOULD apply the catalog’s `requires_engine` value (if any).
+- `tags` — required array of Tag objects. The array itself may be empty, but tag names MUST be unique within the `{engine, library.module, tag.name}` tuple.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers MUST ignore unknown members inside `extra`.
 
 ### Tag Object
@@ -206,6 +206,8 @@ Every `TagArg` definition exposes the following members:
 
 `TagArg.name` provides a stable identifier for overlays, diagnostics, and metadata. Producers SHOULD keep the names descriptive, but consumers MUST treat them as opaque keys.
 
+Argument names MUST be unique within a tag definition so that overlays and merge operations can deterministically reference the intended argument.
+
 #### Argument ordering and type
 
 Arguments appear in the order they are written in template syntax. 
@@ -257,7 +259,7 @@ When producing a serialized form, implementations MAY omit members whose values 
 
 Tag identity within a document is defined by the tuple `{engine, library.module, tag.name}`. Documents that overlay one another MUST use this composite key when merging tags. Arrays preserve authoring order. Consumers MUST NOT reorder `libraries`, `tags`, `args`, or `intermediates` unless explicitly directed by the specification.
 
-## Validation
+### Validation
 
 A consumer MUST reject a TagSpec document if any of the following hold:
 
@@ -268,10 +270,11 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 - `type = "standalone"` yet `end` or `intermediates` are supplied.
 - `intermediate.max` is provided and less than `intermediate.min`.
 - Multiple tags share the same `{engine, library.module, name}` identity within a document.
+- A tag defines multiple arguments with the same `name`.
 
 Consumers SHOULD surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
 
-## Extensibility and Forward Compatibility
+### Extensibility and Forward Compatibility
 
 TagSpecs are designed for forward compatibility:
 
@@ -281,7 +284,7 @@ TagSpecs are designed for forward compatibility:
 - Additional metadata keys or values under `extra.*` (including new `hint`, `affects`, or `choices` vocabularies) may appear at any time. Consumers MUST preserve unknown keys and values for round-tripping.
 - Additional top-level fields may appear in future versions and MUST NOT cause validation failures.
 
-## Discovery and Composition
+### Discovery and Composition
 
 Productions may combine multiple TagSpec documents. Consumers SHOULD apply the following discovery order:
 
@@ -290,7 +293,7 @@ Productions may combine multiple TagSpec documents. Consumers SHOULD apply the f
 3. `.djtagspecs.toml` at the project root.
 4. Installed catalogs packaged with libraries.
 
-When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). Overlay documents SHOULD merge fields by the identity rules in §3.8, with later documents overriding earlier values on key collision.
+When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in §3.8, with later documents overriding earlier values on key collision.
 
 An inline configuration uses the same structure as standalone files. For example:
 
@@ -307,7 +310,7 @@ name = "hero"
 type = "block"
 ```
 
-## Conformance
+### Conformance
 
 Implementations may claim one or more of the following conformance levels:
 
@@ -375,7 +378,7 @@ required = false
 name = "context_var"
 kind = "assignment"
 required = false
-hint = "context_extension"
+extra = { hint = "context_extension" }
 ```
 
 ### Loader Tag: `include`
@@ -399,8 +402,8 @@ type = "loader"
 [[libraries.tags.args]]
 name = "template"
 kind = "literal"
-hint = "template_path"
 required = true
+extra = { hint = "template_path" }
 
 [[libraries.tags.args]]
 name = "with"
@@ -411,13 +414,13 @@ required = false
 name = "bindings"
 kind = "assignment"
 required = false
-hint = "parameter_passing"
+extra = { hint = "parameter_passing" }
 
 [[libraries.tags.args]]
 name = "only"
 kind = "modifier"
 required = false
-affects = "context"
+extra = { affects = "context" }
 ```
 
 ### Standalone Tag: `url`
@@ -443,8 +446,8 @@ type = "standalone"
 [[libraries.tags.args]]
 name = "pattern"
 kind = "literal"
-hint = "url_name"
 required = true
+extra = { hint = "url_name" }
 
 [[libraries.tags.args]]
 name = "args"
@@ -460,7 +463,7 @@ required = false
 name = "context_var"
 kind = "assignment"
 required = false
-hint = "variable_capture"
+extra = { hint = "variable_capture" }
 ```
 
 ## Reference Schema and Implementation
