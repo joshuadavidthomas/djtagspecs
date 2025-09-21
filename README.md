@@ -36,11 +36,15 @@ Still confused? Skip to the [examples](#examples) to see what a TagSpec document
 
 I stumbled into the rules and config that lead to the TagSpec specification while working on [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface diagnostics statically without importing Django or executing user code.
 
-The first approach was straightforward but brittle, hard-coding the behaviour of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn't scale *and* filled me with a sense of dread as I thought of the sheer amount of work it would take.
+The first approach was straightforward but brittle, hard-coding the behaviour of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn’t scale *and* filled me with a sense of dread at the sheer amount of work it would take.
 
-The only durable part of the work was writing the rules down. Once tag syntax, block structure, and semantics lived in a structured document, the language server could reuse them. That repeatable bit turned into TagSpecs: a declarative format that captures the knowledge instead of the code that interprets it.
+See, the template engine is hands-off when it comes to template tags. You can pretty much do whatever you want inside one as long as you return a string when it renders. That flexibility is great for authors but makes developing AST-style heuristics almost impossible (if you have any ideas on how to do so, please let me know!). Even the notion of an end tag is just convention, Django doesn’t enforce `end<tag_name>`.
 
-Publishing the specification outside the language server keeps those rules from being an internal detail. Library authors can ship their own TagSpec documents, tooling authors can exchange catalogs instead of reverse-engineering each other’s heuristics, and curious Django developers get a shared vocabulary. The more people who publish and consume TagSpecs, the better the tooling ecosystem becomes.
+But if you step back and think about the pieces you actually need to validate usage, the list is surprisingly small: the tag’s name, the arguments it accepts, whether it requires a closing tag, and which intermediate tags are allowed before that closing tag.
+
+Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That repeatable bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
+
+Publishing the specification outside the language server hopefully keeps those rules from being an internal detail. Library authors can ship their own TagSpec documents, tooling authors can exchange catalogs instead of reverse-engineering each other’s heuristics, and curious Django developers get a shared vocabulary. The more people who publish and consume TagSpecs, the better the tooling ecosystem becomes.
 
 ## Real-World Usage
 
