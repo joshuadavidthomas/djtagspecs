@@ -218,6 +218,7 @@ Arguments appear in the order they are written in template syntax.
 `TagArg.type` indicates whether an argument may be positional, keyword, or both. 
 
 Engines that follow Python-style semantics (for example Django) SHOULD keep positional arguments before keyword arguments. Consumers MAY rely on this order when interpreting positional arguments.
+
 #### Argument kinds
 
 The `TagArg.kind` field conveys the syntactic class of the argument value. The following values are defined:
@@ -238,12 +239,7 @@ Tag arguments MAY carry additional semantics using the `extra` object. The follo
 - `kind = "literal"` → `extra.hint` naming what the literal references (examples: `"url_name"`, `"template_path"`, `"block_name"`, `"staticfile"`, `"library_name"`, `"cache_key"`, `"setting_name"`).
 - `kind = "choice"` → `extra.choices` listing permitted literal values.
 - `kind = "modifier"` → `extra.affects` indicating which evaluation scope changes (examples: `"context"`, `"iteration"`, `"rendering"`, `"inheritance"`).
-- Any tag part → `extra.matches` declaring that this argument must equal another
-  argument in the same tag definition. The value SHOULD be an object with
-  `part` (one of `"tag"`, `"end"`, or `"intermediate"`), `argument`
-  (referencing the argument name), and, when `part = "intermediate"`, a
-  `name` identifying the marker. Tools MAY use this to enforce relationships
-  such as Django’s `{% block name %} ... {% endblock name %}` pairing.
+- Any tag part → `extra.matches` declaring that this argument must equal another argument in the same tag definition. The value SHOULD be an object with `part` (one of `"tag"`, `"end"`, or `"intermediate"`), `argument` (referencing the argument name), and, when `part = "intermediate"`, a `name` identifying the marker. Tools MAY use this to enforce relationships such as Django’s `{% block name %} ... {% endblock name %}` pairing.
 
 Engines MAY introduce additional keys or values as needed; the names above are guidelines rather than an exhaustive vocabulary.
 
@@ -342,8 +338,7 @@ A conforming implementation is RECOMMENDED to document which levels it satisfies
 {% endblock sidebar %}
 ```
 
-This spec captures the required block name and the optional matching argument on
-`endblock` enforced via `extra.matches`.
+This spec captures the required block name and the optional matching argument on `endblock` enforced via `extra.matches`.
 
 ```toml
 version = "0.1.0"
@@ -381,8 +376,7 @@ extra = { matches = { part = "tag", argument = "name" } }
 {% endfor %}
 ```
 
-The `for` signature records the opening arguments and the optional `empty`
-intermediate constrained to appear last at most once.
+The `for` signature records the opening arguments and the optional `empty` intermediate constrained to appear last at most once.
 
 ```toml
 version = "0.1.0"
@@ -441,8 +435,7 @@ extra = { hint = "context_extension" }
 {% include "partials/card.html" with product=product highlight=True %}
 ```
 
-This example demonstrates optional `with` bindings and the `only` modifier that
-limits context leakage.
+This example demonstrates optional `with` bindings and the `only` modifier that limits context leakage.
 
 ```toml
 version = "0.1.0"
@@ -490,8 +483,7 @@ extra = { affects = "context" }
 <a href="{{ index_url }}">Blog</a>
 ```
 
-The TagSpec models positional arguments for the view name and parameters, plus
-the optional `as` assignment used to capture the generated URL.
+The TagSpec models positional arguments for the view name and parameters, plus the optional `as` assignment used to capture the generated URL.
 
 ```toml
 version = "0.1.0"
