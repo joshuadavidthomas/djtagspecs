@@ -101,7 +101,7 @@ TagSpecs does not attempt to describe runtime behaviour or side effects, nor doe
 - **End tag**: the closing directive for a block or block-capable loader tag (for example `endfor`).
 - **Intermediate tag**: a marker that can appear between the opener and the end of a block (for example `elif` or `else`).
 - **Tag argument**: a syntactic element that appears in the tag declaration and is described by its `kind`.
-- **Argument kind**: ...
+    - **Argument kind**: the enumerated classification of a tag argument that defines its syntactic role and constraints (for example `any`, `assignment`, or `syntax`).
 - **Producer**: the author or repository that maintains a TagSpec document (for example, a library shipping specs, or a team curating project overrides).
 - **Consumer**: a tool that reads TagSpec documents (for example, validators, language servers, editors).
 
