@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 authors = [
-    { name = "Josh", email = "josh@joshthomas.dev" }
+    { name = "Josh Thomas", email = "josh@joshthomas.dev" }
 ]
 dependencies = [
     "pydantic>=2.11.9",
