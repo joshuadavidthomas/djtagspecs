@@ -2,34 +2,41 @@
 
 A specification for describing Django template tag syntax.
 
-## What This Is and Is Not
+## Overview
 
-✅ This IS:
+TagSpecs is a machine-readable format for describing Django template tag syntax. If you're familiar with OpenAPI for REST APIs, TagSpecs plays a comparable role for Django templates: it captures the structure of tags so tooling can reason about them without executing Django itself.
 
-- A **specification format** (like OpenAPI for APIs)
-- A way to **document** template tag syntax
-- A **standard** that tools can implement
-- Reference models for **validating** TagSpec documents
+The format emerged while I was building the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). Trying to surface static diagnostics meant reverse-engineering a lot of hand-written parsing rules from Django core and third-party libraries. Writing those rules down as structured data turned out to be the repeatable part of the exercise, so I formalized the shape of that data here instead of letting it live only inside the language server’s codebase.
 
-❌ This is NOT:
+Publishing the spec is also an invitation to share catalogs of tag definitions. Externalizing the rules makes it possible to:
+
+- avoid hard-coding template behaviour in every tool
+- ship the same catalog with multiple tools or services
+- describe custom tag libraries without touching code
+
+TagSpecs documents can sit alongside libraries or be collected in a central catalog that multiple tools consume.
+
+### What TagSpecs Provides
+
+- A specification format, similar in spirit to OpenAPI or JSON Schema
+- A way to document template tags so tools can understand them
+- A catalog format that projects can publish and share
+- A contract that tooling authors can implement against
+- Backed by reference models for validating TagSpec documents
+
+### What TagSpecs Does Not Provide
 
 - A template parser
-- A tool that analyzes your Django templates  
-- Something that generates output from templates
-- A Django app you add to INSTALLED_APPS
+- A tool that analyzes templates or renders output
+- A Django app to add to `INSTALLED_APPS`
 
-Looking for a template parser? This isn't it. TagSpecs describes tag syntax so OTHER tools can parse templates correctly.
+If you are looking for something that parses templates, you need a separate tool. TagSpecs only supplies the metadata that tool would consume. The specification is new and currently powers the `django-language-server`; future tools are encouraged to adopt it.
 
-## Who Should Use This?
+## Audience
 
-### 🔧 Tool Developers
-Building a Django linter, language server, or documentation generator? Use TagSpecs to understand tag syntax without importing Django.
-
-### 📚 Library Authors  
-Maintain a custom template tag library? Write TagSpec documents so tools can understand your tags.
-
-### 👩‍💻 Django Developers
-Just writing Django apps? You probably don't need this directly—your tools will use it behind the scenes.
+- Tool authors experimenting with linters, language servers, code intelligence, or documentation generators for Django templates
+- Library maintainers who ship custom template tags and want to describe their syntax
+- Django developers evaluating how template tooling could evolve or considering TagSpecs for a project of their own
 
 ## The Problem TagSpecs Solves
 
@@ -43,7 +50,9 @@ TagSpecs provides a declarative format to describe:
 - Whether it's a block tag or standalone
 - What intermediate tags are allowed (like elif/else)
 
-## Quick Example
+## Examples
+
+### Documenting Django's `{% for %}` tag
 
 Here's how Django's `{% for %}` tag is described in TagSpecs:
 
@@ -77,72 +86,9 @@ Tools read this metadata to provide features like:
 - Auto-completion
 - Documentation on hover
 
-## How It Works
+### Documenting your own tag library
 
-```
-1. Django tag library authors write TagSpec documents
-                       ↓
-2. TagSpec documents describe tag syntax in TOML/JSON/YAML
-                       ↓
-3. Tools read TagSpec documents (NOT templates)
-                       ↓
-4. Tools use metadata to understand template syntax
-                       ↓
-5. Tools implement their own template parsing using this knowledge
-                       ↓
-6. End users get better IDE support, linting, etc.
-```
-
-**Key Point:** TagSpecs provides the metadata. Your tool does the actual template parsing.
-
-## The Specification
-
-📖 **[Read the full specification](spec/SPECIFICATION.md)**
-
-The specification defines:
-- Document structure and fields
-- Tag types (block, loader, standalone)
-- Argument kinds and semantics
-- Validation rules
-- Extensibility mechanisms
-
-### Specification and Schema
-
-`djtagspecs` ships both the normative specification and a machine-readable schema so producers and tooling vendors can stay aligned.
-
-- **Specification** – `spec/SPECIFICATION.md` is the authoritative contract for TagSpecs. It defines the object model, terminology, validation rules, and forward-compatibility guarantees that implementers MUST follow.
-- **Schema** – `spec/schema.json` is generated from the Pydantic models and mirrors the specification. Use it to validate TagSpec documents or integrate with JSON Schema tooling.
-
-## For Implementers
-
-### Reading TagSpecs in Your Tool
-
-1. **Discover** TagSpec documents (TOML/JSON/YAML)
-2. **Validate** against the schema
-3. **Use** the metadata to understand tag syntax
-4. **Parse** templates using this knowledge (your code does this part!)
-
-### Example Implementation Pattern
-
-```python
-# Your tool loads TagSpecs (this library helps validate them)
-from djtagspecs.models import TagSpec
-
-spec = TagSpec.model_validate_json(...)
-
-# Your tool uses the metadata to parse templates
-# (TagSpecs doesn't do this part - that's YOUR implementation)
-for tag in spec.libraries[0].tags:
-    if tag.type == "block":
-        # Your parser knows to look for end tag
-        # Your parser validates intermediate tags
-        # Your parser checks argument kinds
-        ...
-```
-
-### Writing TagSpec Documents
-
-If you're documenting your own template tags:
+Here's the structure for a custom `card` block tag:
 
 ```toml
 version = "0.1.0"
@@ -164,6 +110,67 @@ required = true
 name = "endcard"
 ```
 
+This describes a single library (`myapp.templatetags.custom`) containing a `card` block tag. The tag requires a literal `title` argument and terminates with `endcard`.
+
+## How It Works
+
+Typical flow:
+
+1. Template tag authors publish TagSpec documents
+2. Documents describe tag syntax in TOML, JSON, or YAML
+3. Tools read TagSpec documents (not templates) and validate them
+4. Tools use the metadata to understand template structure
+5. Tools implement their own template parsing logic using that information
+
+TagSpecs provides structure only; parsing and analysis stay in your implementation.
+
+Catalogs can travel with a tag library, live in a separate repository, or be bundled with tooling. The goal is to avoid scattering the same parsing rules across multiple codebases.
+
+## Specification
+
+Read the full specification: [spec/SPECIFICATION.md](spec/SPECIFICATION.md)
+
+The specification defines:
+- Document structure and fields
+- Tag types (block, loader, standalone)
+- Argument kinds and semantics
+- Validation rules
+- Extensibility mechanisms
+
+### Specification and Schema
+
+`djtagspecs` ships both the normative specification and a machine-readable schema so producers and tooling vendors can stay aligned.
+
+- **Specification** – `spec/SPECIFICATION.md` is the authoritative contract for TagSpecs. It defines the object model, terminology, validation rules, and forward-compatibility guarantees that implementers MUST follow.
+- **Schema** – `spec/schema.json` is generated from the Pydantic models and mirrors the specification. Use it to validate TagSpec documents or integrate with JSON Schema tooling.
+
+## For Implementers
+
+### Reading TagSpecs in Your Tool
+
+1. Discover TagSpec documents (TOML, JSON, or YAML)
+2. Validate them against the schema
+3. Use the metadata to understand tag syntax
+4. Implement parsing or analysis using that knowledge
+
+### Example Implementation Pattern
+
+```python
+# Your tool loads TagSpecs (this library helps validate them)
+from djtagspecs.models import TagSpec
+
+spec = TagSpec.model_validate_json(...)
+
+# Your tool uses the metadata to parse templates
+# (TagSpecs doesn't do this part - that's YOUR implementation)
+for tag in spec.libraries[0].tags:
+    if tag.type == "block":
+        # Your parser knows to look for end tag
+        # Your parser validates intermediate tags
+        # Your parser checks argument kinds
+        ...
+```
+
 ## Reference Implementation
 
 ### Python Package
@@ -182,7 +189,7 @@ We provide a Python package with:
 ```bash
 python -m pip install djtagspecs
 
-# or if you like the new hotness
+# or with uv
 uv add djtagspecs
 uv sync
 ```
@@ -223,35 +230,23 @@ The language server reads TagSpec documents to understand available tags, then u
 
 ## FAQ
 
-**Q: Does this parse my Django templates?**  
+**Q: Does this parse my Django templates?**
 A: No. It describes tag syntax so other tools can parse templates.
 
-**Q: Do I need this for my Django project?**  
+**Q: Do I need this for my Django project?**
 A: Only if you're building tools or documenting a tag library.
 
-**Q: Is this an official Django project?**  
+**Q: Is this an official Django project?**
 A: No, it's a community specification for tooling interoperability.
 
-**Q: How is this different from Django's template documentation?**  
-A: This is machine-readable metadata, not human documentation.
+**Q: How is this different from Django's template documentation?**
+A: TagSpecs is machine-readable metadata, not narrative documentation.
 
-**Q: Can I use this to generate documentation?**  
-A: Yes! Tools can read TagSpec documents to auto-generate docs.
+**Q: Can I use this to generate documentation?**
+A: Yes. Tools can read TagSpec documents to generate docs.
 
-**Q: What if my tags have complex runtime behavior?**  
-A: TagSpecs only describes syntax, not runtime semantics. Complex behavior stays in your code.
-
-## Comparison to Other Specifications
-
-| Specification | Domain | Purpose |
-|--------------|--------|---------|
-| OpenAPI | REST APIs | Describes API endpoints and schemas |
-| JSON Schema | JSON data | Validates JSON structure |
-| AsyncAPI | Event APIs | Describes async message APIs |
-| GraphQL Schema | GraphQL APIs | Defines GraphQL types and operations |
-| **TagSpecs** | Django tags | Describes template tag syntax |
-
-All these specifications share a common goal: providing machine-readable metadata about an interface so tools can work with it without executing code.
+**Q: What if my tags have complex runtime behavior?**
+A: TagSpecs only describes syntax, not runtime semantics.
 
 ## License
 
