@@ -37,6 +37,7 @@ TagType = Literal["block", "loader", "standalone"]
 
 class IntermediateTag(BaseModel):
     name: str
+    args: list[TagArg] = Field(default_factory=list)
     min: int | None = Field(None, ge=0)
     max: int | None = Field(None, ge=0)
     position: Position = Field("any")
@@ -48,6 +49,7 @@ Position = Literal["any", "last"]
 
 class EndTag(BaseModel):
     name: str
+    args: list[TagArg] = Field(default_factory=list)
     required: bool = Field(True)
     extra: dict[str, Any] | None = Field(None)
 

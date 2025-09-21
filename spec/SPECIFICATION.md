@@ -100,7 +100,7 @@ TagSpecs does not attempt to describe runtime behaviour or side effects, nor doe
     - **Standalone tag**: a tag that does not wrap body content and has no end tag.
 - **End tag**: the closing directive for a block or block-capable loader tag (for example `endfor`).
 - **Intermediate tag**: a marker that can appear between the opener and the end of a block (for example `elif` or `else`).
-- **Tag argument**: a syntactic element that appears in the tag declaration and is described by its `kind`.
+- **Tag argument**: a syntactic element that appears in a tag part (opening, intermediate, or closing) and is described by its `kind`.
     - **Argument kind**: the enumerated classification of a tag argument that defines its syntactic role and constraints (for example `any`, `assignment`, or `syntax`).
 - **Producer**: the author or repository that maintains a TagSpec document (for example, a library shipping specs, or a team curating project overrides).
 - **Consumer**: a tool that reads TagSpec documents (for example, validators, language servers, editors).
@@ -180,6 +180,7 @@ Loader tags MAY provide `intermediates` and `end` when the runtime implementatio
 The `EndTag` object describes the closing token for block and block-capable loader tags:
 
 - `name` — string naming the closing tag (for example `"endfor"`).
+- `args` — array of `TagArg` objects describing the arguments accepted by the closing tag. Defaults to an empty array and follows the same ordering and semantics as opening-tag arguments.
 - `required` — boolean indicating whether the closing tag must appear explicitly. Defaults to `true`. When `false`, the closing token is optional and may be implied by template termination or a disallowed token.
 
 ### Intermediate Tags
@@ -187,6 +188,7 @@ The `EndTag` object describes the closing token for block and block-capable load
 Intermediate markers allow block tags to model multi-part structures such as `if/elif/else`. Each `IntermediateTag` object contains:
 
 - `name` — the literal name of the marker.
+- `args` — array of `TagArg` objects accepted by the marker. Defaults to an empty array. Ordering, typing, and kinds follow the same conventions as opening-tag arguments.
 - `min` — optional non-negative integer specifying the minimum number of times the marker must appear. When omitted or `null`, there is no lower bound (effectively zero).
 - `max` — optional non-negative integer specifying the maximum number of times the marker may appear. When omitted or `null`, there is no upper bound. Consumers MUST reject values less than `min`.
 - `position` — optional enumeration describing placement constraints. `"any"` (default) allows the marker anywhere after the opener and before the end tag. `"last"` restricts the marker to the final position before the end tag (for example `else`).
@@ -194,7 +196,8 @@ Intermediate markers allow block tags to model multi-part structures such as `if
 
 ### Tag Arguments
 
-Every `TagArg` definition exposes the following members:
+Every `TagArg` definition—whether attached to an opening tag, intermediate marker,
+or end tag—exposes the following members:
 
 - `name` — identifier for the argument. For keyword-only arguments this corresponds to the literal keyword in the template.
 - `required` — boolean indicating whether the argument is mandatory. Defaults to `true`.
@@ -206,7 +209,7 @@ Every `TagArg` definition exposes the following members:
 
 `TagArg.name` provides a stable identifier for overlays, diagnostics, and metadata. Producers SHOULD keep the names descriptive, but consumers MUST treat them as opaque keys.
 
-Argument names MUST be unique within a tag definition so that overlays and merge operations can deterministically reference the intended argument.
+Argument names MUST be unique within each argument list (opening tag, a specific intermediate marker, or the end tag) so overlays and merge operations can deterministically reference the intended argument. Producers MAY reuse names across different lists when semantics align (for example `for`/`empty`).
 
 #### Argument ordering and type
 
@@ -235,6 +238,12 @@ Tag arguments MAY carry additional semantics using the `extra` object. The follo
 - `kind = "literal"` → `extra.hint` naming what the literal references (examples: `"url_name"`, `"template_path"`, `"block_name"`, `"staticfile"`, `"library_name"`, `"cache_key"`, `"setting_name"`).
 - `kind = "choice"` → `extra.choices` listing permitted literal values.
 - `kind = "modifier"` → `extra.affects` indicating which evaluation scope changes (examples: `"context"`, `"iteration"`, `"rendering"`, `"inheritance"`).
+- Any tag part → `extra.matches` declaring that this argument must equal another
+  argument in the same tag definition. The value SHOULD be an object with
+  `part` (one of `"tag"`, `"end"`, or `"intermediate"`), `argument`
+  (referencing the argument name), and, when `part = "intermediate"`, a
+  `name` identifying the marker. Tools MAY use this to enforce relationships
+  such as Django’s `{% block name %} ... {% endblock name %}` pairing.
 
 Engines MAY introduce additional keys or values as needed; the names above are guidelines rather than an exhaustive vocabulary.
 
@@ -248,7 +257,7 @@ Consumers MUST interpret omitted members according to these defaults, regardless
 
 - `engine` defaults to `"django"`.
 - `extends` defaults to an empty array.
-- `args` and `intermediates` default to empty arrays.
+- `tag.args`, `end.args`, and `intermediate.args` default to empty arrays; `intermediates` defaults to an empty array.
 - `end.required` defaults to `true`.
 - `arg.required` defaults to `true`; `arg.type` defaults to `"both"`.
 - `intermediate.position` defaults to `"any"`; `min` and `max` default to `null` (meaning unspecified).
@@ -270,7 +279,7 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 - `type = "standalone"` yet `end` or `intermediates` are supplied.
 - `intermediate.max` is provided and less than `intermediate.min`.
 - Multiple tags share the same `{engine, library.module, name}` identity within a document.
-- A tag defines multiple arguments with the same `name`.
+- Any of `tag.args`, `intermediate.args`, or `end.args` contain duplicate `name` values within the same argument list.
 
 Consumers SHOULD surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
 
@@ -323,7 +332,46 @@ A conforming implementation is RECOMMENDED to document which levels it satisfies
 
 ## Examples
 
-### Block Tag: `for`
+### Block Tag
+
+#### `block`
+
+```django
+{% block sidebar %}
+    <p>Sidebar content</p>
+{% endblock sidebar %}
+```
+
+This spec captures the required block name and the optional matching argument on
+`endblock` enforced via `extra.matches`.
+
+```toml
+version = "0.1.0"
+engine = "django"
+
+[[libraries]]
+module = "django.template.defaulttags"
+
+[[libraries.tags]]
+name = "block"
+type = "block"
+
+[[libraries.tags.args]]
+name = "name"
+kind = "literal"
+required = true
+
+[libraries.tags.end]
+name = "endblock"
+
+[[libraries.tags.end.args]]
+name = "name"
+kind = "literal"
+required = false
+extra = { matches = { part = "tag", argument = "name" } }
+```
+
+#### `for`
 
 ```django
 {% for item in items %}
@@ -332,6 +380,9 @@ A conforming implementation is RECOMMENDED to document which levels it satisfies
     <p>No items available.</p>
 {% endfor %}
 ```
+
+The `for` signature records the opening arguments and the optional `empty`
+intermediate constrained to appear last at most once.
 
 ```toml
 version = "0.1.0"
@@ -381,12 +432,17 @@ required = false
 extra = { hint = "context_extension" }
 ```
 
-### Loader Tag: `include`
+### Loader Tag
+
+#### `include`
 
 ```django
 {% include "partials/card.html" with product=product only %}
 {% include "partials/card.html" with product=product highlight=True %}
 ```
+
+This example demonstrates optional `with` bindings and the `only` modifier that
+limits context leakage.
 
 ```toml
 version = "0.1.0"
@@ -423,7 +479,9 @@ required = false
 extra = { affects = "context" }
 ```
 
-### Standalone Tag: `url`
+### Standalone Tag
+
+#### `url`
 
 ```django
 <a href="{% url 'account:detail' user.pk %}">View account</a>
@@ -431,6 +489,9 @@ extra = { affects = "context" }
 {% url 'blog:index' as index_url %}
 <a href="{{ index_url }}">Blog</a>
 ```
+
+The TagSpec models positional arguments for the view name and parameters, plus
+the optional `as` assignment used to capture the generated URL.
 
 ```toml
 version = "0.1.0"
