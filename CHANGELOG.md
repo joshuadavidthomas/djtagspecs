@@ -13,7 +13,7 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 ### Removed - for now removed features
 ### Fixed - for any bug fixes
 ### Security - in case of vulnerabilities
-[${version}]: https://github.com/joshuadavidthomas/django-tagspecs/releases/tag/v${version}
+[${version}]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v${version}
 -->
 
 ## [Unreleased]
@@ -22,4 +22,4 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 - Josh Thomas <josh@joshthomas.dev> (maintainer)
 
-[unreleased]: https://github.com/joshuadavidthomas/django-language-server/tree/main
+[unreleased]: https://github.com/joshuadavidthomas/djtagspecs/tree/main

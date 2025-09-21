@@ -9,8 +9,8 @@ from pydantic.json_schema import GenerateJsonSchema
 from pydantic.json_schema import JsonSchemaMode
 from pydantic_core import CoreSchema
 
-from django_tagspecs._typing import override
-from django_tagspecs.models import TagSpec
+from djtagspecs._typing import override
+from djtagspecs.models import TagSpec
 
 app = typer.Typer(
     name="djts",
