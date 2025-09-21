@@ -43,9 +43,13 @@ This document is the normative definition of the TagSpecs data model for express
     - [Discovery and Composition](#discovery-and-composition)
     - [Conformance](#conformance)
 - [Examples](#examples)
-  - [Block Tag: `for`](#block-tag-for)
-  - [Loader Tag: `include`](#loader-tag-include)
-  - [Standalone Tag: `url`](#standalone-tag-url)
+  - [Block Tag](#block-tag-1)
+    - [`block`](#block)
+    - [`for`](#for)
+  - [Loader Tag](#loader-tag-1)
+    - [`include`](#include)
+  - [Standalone Tag](#standalone-tag-1)
+    - [`url`](#url)
 - [Reference Schema and Implementation](#reference-schema-and-implementation)
 - [Copyright](#copyright)
 
@@ -332,13 +336,13 @@ A conforming implementation is RECOMMENDED to document which levels it satisfies
 
 #### `block`
 
+Here the TagSpec captures the required block name and the optional matching argument on `endblock` enforced via `extra.matches`.
+
 ```django
 {% block sidebar %}
     <p>Sidebar content</p>
 {% endblock sidebar %}
 ```
-
-This spec captures the required block name and the optional matching argument on `endblock` enforced via `extra.matches`.
 
 ```toml
 version = "0.1.0"
@@ -368,6 +372,8 @@ extra = { matches = { part = "tag", argument = "name" } }
 
 #### `for`
 
+The TagSpec for `for` records the opening arguments and the optional `empty` intermediate constrained to appear last at most once.
+
 ```django
 {% for item in items %}
     {{ item }}
@@ -375,8 +381,6 @@ extra = { matches = { part = "tag", argument = "name" } }
     <p>No items available.</p>
 {% endfor %}
 ```
-
-The `for` signature records the opening arguments and the optional `empty` intermediate constrained to appear last at most once.
 
 ```toml
 version = "0.1.0"
@@ -430,12 +434,12 @@ extra = { hint = "context_extension" }
 
 #### `include`
 
+The TagSpec for `include` documents optional `with` bindings and the `only` modifier that limits context leakage.
+
 ```django
 {% include "partials/card.html" with product=product only %}
 {% include "partials/card.html" with product=product highlight=True %}
 ```
-
-This example demonstrates optional `with` bindings and the `only` modifier that limits context leakage.
 
 ```toml
 version = "0.1.0"
@@ -476,14 +480,14 @@ extra = { affects = "context" }
 
 #### `url`
 
+In this TagSpec, positional arguments cover the view name and parameters, and the optional `as` assignment captures the generated URL.
+
 ```django
 <a href="{% url 'account:detail' user.pk %}">View account</a>
 
 {% url 'blog:index' as index_url %}
 <a href="{{ index_url }}">Blog</a>
 ```
-
-The TagSpec models positional arguments for the view name and parameters, plus the optional `as` assignment used to capture the generated URL.
 
 ```toml
 version = "0.1.0"
