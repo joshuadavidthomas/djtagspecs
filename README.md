@@ -4,37 +4,37 @@ A specification for describing Django template tag syntax.
 
 ## Overview
 
-TagSpecs is a machine-readable format for describing Django template tag syntax. 
+TagSpec is a machine-readable format for describing Django template tag syntax. 
 
-If you're familiar with OpenAPI for REST APIs, TagSpecs plays a comparable role for Django templates: it captures the structure of tags so tools can reason about them without importing Django or executing tag code.
+If you're familiar with OpenAPI for REST APIs, the TagSpec specification plays a comparable role for Django templates: it captures the structure of tags so tools can reason about them without importing Django or executing tag code.
 
 The format is designed to live alongside Django rather than inside it. It documents tag syntax, structure, and semantics so tooling can perform static analysis without involving the Django runtime. 
 
-TagSpecs is intended to complement Django and is primarily for the people building tooling around the template system—language servers, linters, documentation generators, and similar projects.
+TagSpecs are intended to complement Django and are primarily for the people building tooling around the template system, e.g., language servers, linters, documentation generators, and similar projects.
 
 ### So, What Is It?
 
 OK, ok... I know that still doesn't really answer the “what is it?” question. 
 
-In basic terms, TagSpecs is a specification format for describing Django template tags, a shareable catalog you can publish alongside your tag library, and a set of reference models that help tools validate those documents. It is external to Django, aimed at people building template-aware tooling.
+In basic terms, TagSpecs are a specification format for describing Django template tags, a shareable catalog you can publish alongside your tag library, and a set of reference models that help tools validate those documents. It is external to Django, aimed at people building template-aware tooling.
 
-It is not a template parser, a drop-in Django package, or an analyzer that ships ready-made template insights. TagSpecs just describes syntax, structure, and semantics.
+It is not a template parser, a drop-in Django package, or an analyzer that ships ready-made template insights. TagSpecs just describe syntax, structure, and (through use of an `extra` field) semantics.
 
-That makes it most useful for people building Django-aware tooling or shipping custom tag libraries. Document your tags once, publish the catalog, and let multiple tools consume the same metadata. If you’re experimenting with linters, language servers, or documentation generators—or maintaining custom tag libraries—you’re the audience. If you only use built-in tags or want a new rendering engine, this probably isn’t for you.
+That makes it most useful for people building Django-aware tooling or shipping custom tag libraries. Document your tags once, publish the catalog, and let multiple tools consume the same metadata.
 
 ### Wait, So What Do I Do With It?
 
-If you’re a day-to-day Django developer, you can mostly keep scrolling. TagSpecs exists so tooling can understand templates without running them; your benefit comes when the tools you already use adopt the spec.
+If you’re a day-to-day Django developer, you can mostly keep scrolling. TagSpecs exist so tooling can understand templates without running them. Your benefit comes when the tools you already use adopt the spec.
 
-If you maintain a third-party library that ships template tags, TagSpecs lets you document their syntax once and share that definition with any tool that cares.
+If you maintain a third-party library that ships template tags, TagSpecs let you document their syntax once and share that definition with any tool that cares.
 
-If you build tools around Django templates—linters, formatters, language servers, doc generators—TagSpecs is the contract you can publish instead of baking parsing rules into your codebase.
+If you build tools around Django templates, TagSpecs are the contract you can publish instead of baking parsing rules into your codebase.
 
 Still confused? Skip to the [examples](#examples) to see what a TagSpec document looks like in practice.
 
 ## Motivation
 
-I stumbled into the rules and confif that lead to the TagSpec specification while working on [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface diagnostics statically without importing Django or executing user code.
+I stumbled into the rules and config that lead to the TagSpec specification while working on [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface diagnostics statically without importing Django or executing user code.
 
 The first approach was straightforward but brittle, hard-coding the behaviour of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn't scale *and* filled me with a sense of dread as I thought of the sheer amount of work it would take.
 
@@ -47,6 +47,29 @@ Publishing the specification outside the language server keeps those rules from 
 TagSpecs was created for and powers the [django-language-server](https://github.com/joshuadavidthomas/django-language-server), which provides template diagnostics without importing user code and static validation of tag usage. 
 
 The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyze templates—all without executing Django code.
+
+## FAQ
+
+**Q: I'm still confused, how exactly do I use this library?**<br />
+A: Well, you don't exactly. The specification describes a set of rules for statically defining Django template tags so that tools can parse and validate them. This repository contains that specification and a minimal Python library with the reference specification as Pydantic models.
+
+**Q: Does this parse my Django templates?**<br />
+A: No. It describes tag syntax so other tools can parse templates.
+
+**Q: Do I need this for my Django project?**<br />
+A: Only if you're building tools or documenting a tag library.
+
+**Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
+A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
+
+**Q: Is this an official Django project?**<br />
+A: No, it's a community specification for tooling interoperability.
+
+**Q: Can you use this for defining tags from template engines similar to Django, like Jinja2 or Nunjucks?**<br />
+A: Potentially! The specification has an `engine` field baked in and the syntax amongst all the "curly" template engines are all similar enough it should be able to. Though it's early enough this has not been tested at all.
+
+**Q: How is this different from Django's template documentation?**<br />
+A: TagSpec is machine-readable metadata, not narrative documentation.
 
 ## Examples
 
@@ -204,26 +227,13 @@ print(catalog.engine)
 
 The models apply defaults and validate the structure of TagSpec documents. Any unknown keys are preserved so specs can round-trip safely.
 
-## FAQ
-
-**Q: Does this parse my Django templates?**<br />
-A: No. It describes tag syntax so other tools can parse templates.
-
-**Q: Do I need this for my Django project?**<br />
-A: Only if you're building tools or documenting a tag library.
-
-**Q: Is this an official Django project?**<br />
-A: No, it's a community specification for tooling interoperability.
-
-**Q: How is this different from Django's template documentation?**<br />
-A: TagSpecs is machine-readable metadata, not narrative documentation.
-
-**Q: Can I use this to generate documentation?**<br />
-A: Yes. Tools can read TagSpec documents to generate docs.
-
-**Q: What if my tags have complex runtime behavior?**<br />
-A: TagSpecs only describes syntax, not runtime semantics.
 
 ## License
 
 djtagspecs is licensed under the Apache License, Version 2.0. See the [`LICENSE`](LICENSE) file for more information.
+
+---
+
+djtagspecs is not associated with the Django Software Foundation.
+
+Django is a registered trademark of the Django Software Foundation.
