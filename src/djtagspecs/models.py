@@ -24,7 +24,7 @@ class TagSpec(BaseModel):
         modules = [lib.module for lib in libs]
         duplicates = {module for module, count in Counter(modules).items() if count > 1}
         if duplicates:
-            raise ValueError(f"Duplicate library modules found: {set(duplicates)}")
+            raise ValueError(f"Duplicate library modules found: {duplicates}")
         return libs
 
 
@@ -40,7 +40,7 @@ class TagLibrary(BaseModel):
         names = [tag.name for tag in tags]
         duplicates = {name for name, count in Counter(names).items() if count > 1}
         if duplicates:
-            raise ValueError(f"Duplicate tag names found: {set(duplicates)}")
+            raise ValueError(f"Duplicate tag names found: {duplicates}")
         return tags
 
 
@@ -75,9 +75,21 @@ class Tag(BaseModel):
         duplicates = {name for name, count in Counter(names).items() if count > 1}
         if duplicates:
             raise ValueError(
-                f"Duplicate argument names found in tag args: {set(duplicates)}"
+                f"Duplicate argument names found in tag args: {duplicates}"
             )
         return args
+
+    @field_validator("intermediates")
+    @classmethod
+    def validate_single_last_position(
+        cls, intermediates: list[IntermediateTag]
+    ) -> list[IntermediateTag]:
+        last_positions = [i.name for i in intermediates if i.position == "last"]
+        if len(last_positions) > 1:
+            raise ValueError(
+                f"Multiple intermediates cannot have position='last': {last_positions}"
+            )
+        return intermediates
 
 
 TagType = Literal["block", "loader", "standalone"]
@@ -107,7 +119,7 @@ class IntermediateTag(BaseModel):
         duplicates = {name for name, count in Counter(names).items() if count > 1}
         if duplicates:
             raise ValueError(
-                f"Duplicate argument names found in intermediate args: {set(duplicates)}"
+                f"Duplicate argument names found in intermediate args: {duplicates}"
             )
         return args
 
@@ -128,7 +140,7 @@ class EndTag(BaseModel):
         duplicates = {name for name, count in Counter(names).items() if count > 1}
         if duplicates:
             raise ValueError(
-                f"Duplicate argument names found in end tag args: {set(duplicates)}"
+                f"Duplicate argument names found in end tag args: {duplicates}"
             )
         return args
 

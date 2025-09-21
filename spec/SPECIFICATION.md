@@ -133,7 +133,7 @@ The root document captures catalog-wide metadata and the set of tag libraries it
 - `engine` — optional string identifier for the template dialect (for example `"django"`, `"jinja2"`). When omitted, consumers MUST treat the engine as `"django"`. This edition of the specification defines behaviour only for the Django dialect; non-Django engines SHOULD supply additional documentation clarifying any divergent semantics.
 - `requires_engine` — optional string constraining engine versions for the entire catalog (PEP 440 for Django). When omitted, the catalog is assumed to work with all versions recognised by the declared engine. Any child object that omits its own `requires_engine` inherits this value.
 - `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon. Entries are processed in order before applying the current document.
-- `libraries` — array of TagLibrary objects. The array itself may be empty, but library modules MUST be unique within a document.
+- `libraries` — required array of TagLibrary objects. The array itself may be empty, but library modules MUST be unique within a document.
 - `extra` — optional object for catalog-level metadata not otherwise covered by this specification (for example documentation URLs, provenance, or tool-specific flags).
 
 Unrecognised top-level members MAY appear. Consumers SHOULD ignore them while preserving their structure when re-serialising the document.
@@ -280,6 +280,8 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 - `intermediate.max` is provided and less than `intermediate.min`.
 - Multiple tags share the same `{engine, library.module, name}` identity within a document.
 - Any of `tag.args`, `intermediate.args`, or `end.args` contain duplicate `name` values within the same argument list.
+- Multiple intermediates within the same tag specify `position = "last"`.
+- The `extends` chain contains circular references (for example, A extends B, B extends C, C extends A).
 
 Consumers SHOULD surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
 
