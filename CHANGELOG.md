@@ -18,8 +18,13 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 ## [Unreleased]
 
-### New Contributors
+## [0.1.0]
 
-- Josh Thomas <josh@joshthomas.dev> (maintainer)
+### Added
 
-[unreleased]: https://github.com/joshuadavidthomas/djtagspecs/tree/main
+- Initial publication of the TagSpecs specification and reference JSON Schema.
+- `djts` CLI for generating the schema from the Pydantic models.
+- Pydantic models that codify the TagSpecs data model for validation and tooling.
+
+[unreleased]: https://github.com/joshuadavidthomas/djtagspecs/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.1.0

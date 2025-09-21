@@ -293,7 +293,7 @@ Productions may combine multiple TagSpec documents. Consumers SHOULD apply the f
 3. `.djtagspecs.toml` at the project root.
 4. Installed catalogs packaged with libraries.
 
-When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in §3.8, with later documents overriding earlier values on key collision.
+When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.
 
 An inline configuration uses the same structure as standalone files. For example:
 
@@ -314,7 +314,7 @@ type = "block"
 
 Implementations may claim one or more of the following conformance levels:
 
-- **Reader** — parses TagSpec documents, applies defaults, and enforces the validation rules in §4.
+- **Reader** — parses TagSpec documents, applies defaults, and enforces the validation rules in [Validation](#validation).
 - **Writer** — emits valid TagSpec documents and assures round-trip preservation of unknown members.
 - **Validator** — applies TagSpecs to template sources for the declared engine, producing diagnostics for structural violations.
 - **Catalog** — bundles TagSpec documents with libraries and exposes discovery metadata.
@@ -470,7 +470,7 @@ extra = { hint = "variable_capture" }
 
 A machine-readable JSON Schema for TagSpecs is published alongside this document at `spec/schema.json`. Producers SHOULD validate documents against this schema before distribution. Consumers SHOULD treat the schema as a companion reference but prefer the prose specification when conflicts arise.
 
-A reference implementation of the data model is provided in `src/django_tagspecs/models.py` using Pydantic. 
+A reference implementation of the data model is provided in `src/djtagspecs/models.py` using Pydantic. 
 
 The canonical runtime consumer lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) project; the models in this repository mirror that implementation and illustrate defaulting behaviour, validation, and normalisation of TagSpec documents.
 

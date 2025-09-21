@@ -10,7 +10,7 @@ dependencies = [
     "pydantic>=2.11.9",
     "typer>=0.19.1",
 ]
-description = "Add your description here"
+description = "Specification, schema, and CLI tooling for Django template TagSpecs"
 license = {file = "LICENSE"}
 name = "djtagspecs"
 readme = "README.md"
