@@ -128,7 +128,7 @@ name = "endfor"
 
 This document is complete on its own: it tells tools that `for` is a block tag (not standalone), yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-If you want to include optional metadata for tooling, you can expand the definition like this:
+When you do want to layer on optional metadata, the spec lets you hang arbitrary data off each object’s `extra` field. For example:
 
 ```toml
 [[libraries.tags]]
@@ -209,7 +209,7 @@ name = "endcard"
 
 This version already gives tooling everything it needs: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
 
-If you want to include optional metadata, you can expand it like this:
+To add optional metadata for tooling, you can use the same `extra` field, like so:
 
 ```toml
 version = "0.1.0"
