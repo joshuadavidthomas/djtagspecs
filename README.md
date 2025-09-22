@@ -42,11 +42,11 @@ See, the template engine is hands-off when it comes to template tags. You can pr
 
 But if you step back and think about the pieces you actually need to validate usage, the list is surprisingly small: the tag’s name, the arguments it accepts, whether it requires a closing tag, and which intermediate tags are allowed before that closing tag.
 
-Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That repeatable bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
+Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
 
 Django’s backwards-compatibility story and deprecation policy keep tag APIs pretty stable, so the heavy lift only has to happen once. After that, tooling can stay in sync simply by reading the TagSpec config that tag authors share, whether that’s a third-party library or your own project. The goal is that future tooling can opt into the same definitions without each of us redoing the groundwork.
 
-Publishing the specification outside the language server keeps those rules from being an internal detail. The end goal is library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and curious Django developers get a shared vocabulary.
+Publishing the specification outside the language server keeps those rules from being an internal detail. The end goal is library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and Django developers get richer tooling when developing their applications.
 
 ## Real-World Usage
 
