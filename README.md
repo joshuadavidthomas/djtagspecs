@@ -128,7 +128,7 @@ name = "endfor"
 
 This document is complete on its own: it tells tools that `for` is a block tag (not standalone), yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-When you do want to layer on optional metadata, the spec lets you hang arbitrary data off each object’s `extra` field. For example:
+Sometimes you might want to pass along extra hints—think documentation links, UI labels, or analyser defaults. Every object in the spec exposes an `extra` field for that. Here’s the same TagSpec with a few illustrative extras:
 
 ```toml
 [[libraries.tags]]
@@ -170,7 +170,7 @@ name = "endfor"
 extra = { matches = { part = "tag", argument = "item" } }
 ```
 
-Because every object in the spec exposes an `extra` field, producers can attach documentation links, hints, defaults, or cross-references that downstream tooling may surface to users.
+Those `extra` values are optional metadata that tooling can surface (or ignore) to provide richer feedback.
 
 ### Documenting your own tag library
 
@@ -209,7 +209,7 @@ name = "endcard"
 
 This version already gives tooling everything it needs: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
 
-To add optional metadata for tooling, you can use the same `extra` field, like so:
+If you want to publish additional context alongside the spec— links, component names, matching rules—you can use the same `extra` field, like so:
 
 ```toml
 version = "0.1.0"
@@ -236,7 +236,7 @@ name = "endcard"
 extra = { matches = { part = "tag", argument = "title" } }
 ```
 
-Here the optional `extra` payloads add documentation links, component metadata, argument hints, and a rule that the end tag must repeat the opening tag’s `title`. None of that is required by the spec, but sharing it gives tools richer context to work with.
+Those optional `extra` payloads add documentation links, component metadata, argument hints, and a rule that the end tag must repeat the opening tag’s `title`. None of that is required by the spec, but sharing it gives tools richer context to work with.
 
 ## Specification & Schema
 
