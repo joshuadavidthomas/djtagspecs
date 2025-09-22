@@ -4,7 +4,15 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "coverage[toml]>=7.10.7",
+    "nox[uv]>=2025.5.1",
     "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pytest-randomly>=4.0.1",
+    "pytest-xdist>=3.8.0",
+]
+types = [
+    "mypy>=1.18.2",
 ]
 
 [project]
@@ -48,6 +56,59 @@ version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
     '^version = "{version}"',
     '^current_version = "{version}"',
 ]
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if DEBUG:",
+  "if not DEBUG:",
+  "if settings.DEBUG:",
+  "if TYPE_CHECKING:",
+  'def __str__\(self\)\s?\-?\>?\s?\w*\:'
+]
+fail_under = 65  # TODO: increase the coverage floor
+
+[tool.coverage.run]
+omit = [
+  "tests/*"
+]
+source = ["src/djtagspecs"]
+
+[tool.mypy]
+check_untyped_defs = true
+exclude = [
+  ".venv",
+  "docs",
+  "tests",
+  "venv"
+]
+mypy_path = "src/"
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = "tomli.*"
+
+[[tool.mypy.overrides]]
+ignore_errors = true
+ignore_missing_imports = true
+module = [
+  "docs.*",
+  "tests.*"
+]
+
+[tool.pytest.ini_options]
+addopts = "-n auto --dist loadfile --doctest-modules"
+norecursedirs = ".* bin build dist *.egg htmlcov logs node_modules templates venv"
+python_files = "tests.py test_*.py *_tests.py"
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
