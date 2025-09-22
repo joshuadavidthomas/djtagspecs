@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from djtagspecs.catalog import TagSpecError
 from djtagspecs.catalog import TagSpecFormat
-from djtagspecs.catalog import TagSpecLoader
 from djtagspecs.catalog import TagSpecLoadError
 from djtagspecs.catalog import TagSpecResolutionError
 from djtagspecs.catalog import dump_tag_spec
@@ -26,7 +25,6 @@ __all__ = [
     "TagSpecError",
     "TagSpecFormat",
     "TagSpecLoadError",
-    "TagSpecLoader",
     "TagSpecResolutionError",
     "dump_tag_spec",
     "load_tag_spec",

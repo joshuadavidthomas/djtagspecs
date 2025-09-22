@@ -14,7 +14,7 @@ authors = [
 dependencies = [
     "pydantic>=2.11.9",
     "typer>=0.19.1",
-    "tomli>=2.0.1",
+    "tomli>=2.0.1; python_version < \"3.11\"",
     "tomli-w>=1.0.0",
 ]
 description = "Specification, schema, and CLI tooling for Django template TagSpecs"

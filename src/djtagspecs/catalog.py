@@ -7,9 +7,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import tomli
+try:
+    import tomllib as toml
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as toml
 import tomli_w
 
+from djtagspecs.models import Tag
 from djtagspecs.models import TagLibrary
 from djtagspecs.models import TagSpec
 
@@ -63,8 +67,8 @@ class TagSpecFormat(str, Enum):
                     return json.loads(path.read_text(encoding="utf-8"))
                 case TagSpecFormat.TOML:
                     with path.open("rb") as fh:
-                        return tomli.load(fh)
-        except (tomli.TOMLDecodeError, json.JSONDecodeError) as exc:
+                        return toml.load(fh)
+        except (toml.TOMLDecodeError, json.JSONDecodeError) as exc:
             raise TagSpecLoadError(
                 f"Failed to parse TagSpec document {path}: {exc}"
             ) from exc
@@ -77,82 +81,67 @@ class TagSpecFormat(str, Enum):
                 return tomli_w.dumps(payload)
 
 
-class TagSpecLoader:
-    """Load TagSpec documents from disk and resolve their overlays."""
-
-    def __init__(self) -> None:
-        self._cache: dict[Path, TagSpec] = {}
-
-    def load(self, path: str | Path, *, resolve_extends: bool = True) -> TagSpec:
-        path = Path(path)
-        if resolve_extends:
-            return self._resolve_path(path)
-        return self._load_raw(path)
-
-    def _load_raw(self, path: Path) -> TagSpec:
-        resolved = path.resolve()
-        if resolved in self._cache:
-            return self._cache[resolved]
-        fmt = TagSpecFormat.from_path(resolved)
-        try:
-            payload = fmt.load(resolved)
-        except FileNotFoundError as exc:
-            raise TagSpecLoadError(f"TagSpec document not found: {resolved}") from exc
-
-        try:
-            spec = TagSpec.model_validate(payload)
-        except Exception as exc:  # noqa: BLE001
-            raise TagSpecLoadError(
-                f"Document {resolved} is not a valid TagSpec: {exc}"
-            ) from exc
-
-        self._cache[resolved] = spec
-        return spec
-
-    def _resolve_path(self, path: Path) -> TagSpec:
-        resolved_path = path.resolve()
-        seen: list[Path] = []
-
-        def _inner(current_path: Path) -> TagSpec:
-            current_resolved = current_path.resolve()
-            if current_resolved in seen:
-                cycle = " -> ".join(str(p) for p in seen + [current_resolved])
-                raise TagSpecResolutionError(
-                    f"Circular extends chain detected: {cycle}"
-                )
-            seen.append(current_resolved)
-            spec = self._load_raw(current_path)
-            base: TagSpec | None = None
-            for reference in spec.extends:
-                ref_path = Path(reference)
-                if not ref_path.is_absolute():
-                    ref_path = current_resolved.parent / ref_path
-                child = _inner(ref_path)
-                base = child if base is None else merge_tag_specs(base, child)
-            seen.pop()
-            if base is None:
-                return spec
-            merged = merge_tag_specs(base, spec)
-            return merged.model_copy(update={"extends": []})
-
-        resolved_spec = _inner(resolved_path)
-        validate_tag_spec(resolved_spec)
-        return resolved_spec
-
-
 def load_tag_spec(path: str | Path, *, resolve_extends: bool = True) -> TagSpec:
-    """Load a TagSpec document from disk."""
-
-    loader = TagSpecLoader()
-    spec = loader.load(path, resolve_extends=resolve_extends)
-    if not resolve_extends:
-        validate_tag_spec(spec)
+    path = Path(path)
+    cache: dict[Path, TagSpec] = {}
+    spec = (
+        _resolve_document(path, cache, stack=[])
+        if resolve_extends
+        else _load_raw(path, cache)
+    )
+    validate_tag_spec(spec)
     return spec
 
 
-def merge_tag_specs(base: TagSpec, overlay: TagSpec) -> TagSpec:
-    """Merge two TagSpec documents, applying `overlay` on top of `base`."""
+def _load_raw(path: Path, cache: dict[Path, TagSpec]) -> TagSpec:
+    resolved = path.resolve()
+    if resolved in cache:
+        return cache[resolved]
 
+    fmt = TagSpecFormat.from_path(resolved)
+    try:
+        payload = fmt.load(resolved)
+    except FileNotFoundError as exc:
+        raise TagSpecLoadError(f"TagSpec document not found: {resolved}") from exc
+
+    try:
+        spec = TagSpec.model_validate(payload)
+    except Exception as exc:  # noqa: BLE001
+        raise TagSpecLoadError(
+            f"Document {resolved} is not a valid TagSpec: {exc}"
+        ) from exc
+
+    cache[resolved] = spec
+    return spec
+
+
+def _resolve_document(
+    path: Path, cache: dict[Path, TagSpec], *, stack: list[Path]
+) -> TagSpec:
+    resolved = path.resolve()
+    if resolved in stack:
+        cycle = " -> ".join(str(p) for p in stack + [resolved])
+        raise TagSpecResolutionError(f"Circular extends chain detected: {cycle}")
+
+    stack.append(resolved)
+    spec = _load_raw(resolved, cache)
+    base: TagSpec | None = None
+    for reference in spec.extends:
+        ref_path = Path(reference)
+        if not ref_path.is_absolute():
+            ref_path = resolved.parent / ref_path
+        child = _resolve_document(ref_path, cache, stack=stack)
+        base = child if base is None else merge_tag_specs(base, child)
+    stack.pop()
+
+    if base is None:
+        return spec
+
+    merged = merge_tag_specs(base, spec)
+    return merged.model_copy(update={"extends": []})
+
+
+def merge_tag_specs(base: TagSpec, overlay: TagSpec) -> TagSpec:
     engine = overlay.engine if "engine" in overlay.model_fields_set else base.engine
     requires_engine = (
         overlay.requires_engine
@@ -176,16 +165,12 @@ def merge_tag_specs(base: TagSpec, overlay: TagSpec) -> TagSpec:
 def dump_tag_spec(
     spec: TagSpec, *, format: TagSpecFormat | str = TagSpecFormat.TOML
 ) -> str:
-    """Serialise a TagSpec to the requested format."""
-
     payload = spec.model_dump(by_alias=True, exclude_none=True)
     fmt = TagSpecFormat.coerce(format)
     return fmt.dump(payload)
 
 
 def validate_tag_spec(spec: TagSpec) -> None:
-    """Perform structural validation that complements model validators."""
-
     module_seen: set[str] = set()
     for library in spec.libraries:
         if library.module in module_seen:
@@ -224,8 +209,7 @@ def _merge_libraries(
 def _merge_library(base: TagLibrary, overlay: TagLibrary) -> TagLibrary:
     if overlay.module != base.module:
         raise TagSpecResolutionError(
-            "Cannot merge libraries with different modules: "
-            f"{base.module} vs {overlay.module}"
+            f"Cannot merge libraries with different modules: {base.module} vs {overlay.module}"
         )
 
     requires_engine = (
@@ -238,7 +222,7 @@ def _merge_library(base: TagLibrary, overlay: TagLibrary) -> TagLibrary:
     base_tags = {tag.name: tag for tag in base.tags}
     order = list(base.tags)
 
-    appended = []
+    appended: list[Tag] = []
     for tag in overlay.tags:
         if tag.name in base_tags:
             idx = order.index(base_tags[tag.name])
@@ -261,9 +245,9 @@ def _merge_optional_mapping(
     overlay: Mapping[str, Any] | None,
     model: Any,
     field_name: str,
-) -> Mapping[str, Any] | None:
+) -> dict[str, Any] | None:
     if field_name not in getattr(model, "model_fields_set", set()):
-        return base
+        return None if base is None else dict(base)
     if overlay is None:
         return None
     merged: dict[str, Any] = {}

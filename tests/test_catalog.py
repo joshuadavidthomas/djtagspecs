@@ -4,21 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from djtagspecs import Tag, TagLibrary, TagSpec
+from djtagspecs import Tag
+from djtagspecs import TagLibrary
+from djtagspecs import TagSpec
 from djtagspecs.catalog import TagSpecResolutionError
 from djtagspecs.catalog import load_tag_spec
 from djtagspecs.catalog import merge_tag_specs
 from djtagspecs.catalog import validate_tag_spec
 
 
-def write(path: Path, payload: str) -> Path:
-    path.write_text(payload, encoding="utf-8")
-    return path
-
-
 def test_load_simple_document(tmp_path: Path) -> None:
-    doc = write(
-        tmp_path / "base.toml",
+    base = tmp_path / "base.toml"
+    base.write_text(
         """
         version = "0.1.0"
 
@@ -31,7 +28,7 @@ def test_load_simple_document(tmp_path: Path) -> None:
         """.strip(),
     )
 
-    spec = load_tag_spec(doc, resolve_extends=False)
+    spec = load_tag_spec(base, resolve_extends=False)
 
     assert spec.version == "0.1.0"
     assert spec.extends == []
@@ -40,8 +37,8 @@ def test_load_simple_document(tmp_path: Path) -> None:
 
 
 def test_resolve_extends_merges_tags(tmp_path: Path) -> None:
-    write(
-        tmp_path / "base.toml",
+    base = tmp_path / "base.toml"
+    base.write_text(
         """
         version = "0.1.0"
 
@@ -58,8 +55,8 @@ def test_resolve_extends_merges_tags(tmp_path: Path) -> None:
         """.strip(),
     )
 
-    overlay = write(
-        tmp_path / "overlay.toml",
+    overlay = tmp_path / "overlay.toml"
+    overlay.write_text(
         """
         version = "0.1.0"
         extends = ["base.toml"]
@@ -83,9 +80,9 @@ def test_resolve_extends_merges_tags(tmp_path: Path) -> None:
 
     library = spec.libraries[0]
     tag_names = [tag.name for tag in library.tags]
+    extra_lookup = {tag.name: tag.extra for tag in library.tags}
 
     assert tag_names == ["hello", "base_only", "overlay_only"]
-    extra_lookup = {tag.name: tag.extra for tag in library.tags}
     assert extra_lookup["hello"] == {"source": "overlay"}
 
 
@@ -108,29 +105,26 @@ def test_validate_detects_duplicate_modules() -> None:
         validate_tag_spec(spec)
 
 
-def test_merge_appends_new_library(sample_library: TagLibrary) -> None:
-    base = TagSpec(version="0.1.0", libraries=[sample_library])
-    overlay = TagSpec(
+def test_merge_appends_new_library():
+    base = TagSpec.model_construct(
         version="0.1.0",
         libraries=[
-            TagLibrary(
+            TagLibrary.model_construct(
+                module="example",
+                tags=[Tag.model_construct(name="hello", type="standalone")],
+            )
+        ],
+    )
+    overlay = TagSpec.model_construct(
+        version="0.1.0",
+        libraries=[
+            TagLibrary.model_construct(
                 module="other",
-                tags=[Tag(name="bye", type="standalone")],
+                tags=[Tag.model_construct(name="bye", type="standalone")],
             )
         ],
     )
 
     merged = merge_tag_specs(base, overlay)
 
-    assert [lib.module for lib in merged.libraries] == [
-        sample_library.module,
-        "other",
-    ]
-
-
-@pytest.fixture()
-def sample_library() -> TagLibrary:
-    return TagLibrary(
-        module="example",
-        tags=[Tag(name="hello", type="standalone")],
-    )
+    assert [lib.module for lib in merged.libraries] == ["example", "other"]
