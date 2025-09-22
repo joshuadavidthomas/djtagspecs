@@ -44,11 +44,13 @@ But if you step back and think about the pieces you actually need to validate us
 
 Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That repeatable bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
 
+Django’s backwards-compatibility story and deprecation policy keep tag APIs pretty stable, so the heavy lift only has to happen once. After that, tooling can stay in sync simply by reading the TagSpec config that tag authors share, whether that’s a third-party library or your own project. The goal is that future tooling can opt into the same definitions without each of us redoing the groundwork.
+
 Publishing the specification outside the language server keeps those rules from being an internal detail. The end goal is library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and curious Django developers get a shared vocabulary.
 
 ## Real-World Usage
 
-TagSpecs was created for—and powers—the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyse templates without importing user code or executing Django.
+TagSpecs was created for and powers [django-language-server's](https://github.com/joshuadavidthomas/django-language-server) diagnostics. The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyse templates without importing user code or executing Django.
 
 ## FAQ
 
@@ -56,7 +58,10 @@ TagSpecs was created for—and powers—the [django-language-server](https://git
 A: Well, you don't exactly. The specification describes a set of rules for statically defining Django template tags so that tools can parse and validate them. This repository contains that specification and a minimal Python library with the reference specification as Pydantic models.
 
 **Q: So… I don't install anything? What exactly *is* this then?**<br />
-A: It’s the blueprint that used to live quietly inside the django-language-server. Writing it down gives other tooling (linting, docs, language services) a shared spec to build against. The package ships typed models and a schema generator so tool authors can validate TagSpec files, but most Django projects won’t install it directly.
+A: It’s basically the idea I had for describing Django template tags, the rules and config I wrote to parse them, formalized in prose (with a matching set of Pydantic models). By writing it down, my hope is it gives other tooling a shared spec to build against, instead of just living quietly inside django-language-server.
+
+**Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
+A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
 
 **Q: Does this parse my Django templates?**<br />
 A: No. It describes tag syntax so other tools can parse templates.
@@ -66,9 +71,6 @@ A: Only if you're building tools or documenting a tag library.
 
 **Q: Where can I see more TagSpec examples right now?**<br />
 A: The most complete catalog currently lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) repository. It’s a little out of date relative to this spec, but it shows the breadth of tags already documented. The plan is to move that catalog into this project once it’s refreshed.
-
-**Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
-A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea. If you’ve got a better one, I’m all ears.
 
 **Q: Is this an official Django project?**<br />
 A: No, it's a community specification for tooling interoperability.
@@ -131,7 +133,7 @@ name = "endfor"
 
 This document covers what a tool needs to know: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-If you want to ship extra hints—documentation links, analyser defaults, UI labels—you can hang them off the `extra` field that every object exposes. Here’s the same TagSpec with a few illustrative extras:
+If you want to ship extra hints (think documentation links, analyser defaults, UI labels, etc.) you can hang them off the `extra` field that every object exposes. Here’s the same TagSpec with a few illustrative extras:
 
 ```toml
 [[libraries.tags]]
@@ -160,7 +162,7 @@ extra = { hint = "iterable" }
 name = "reversed"
 kind = "modifier"
 required = false
-extra = { affects = "iteration", default = false }
+extra = { affects = "iteration_direction", default = false }
 
 [[libraries.tags.intermediates]]
 name = "empty"
