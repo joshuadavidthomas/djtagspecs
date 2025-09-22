@@ -90,7 +90,7 @@ To show how TagSpecs lines up with real templates, here’s Django’s built-in 
 {% endfor %}
 ```
 
-First, here’s the bare-bones TagSpec equivalent:
+First, here’s the TagSpec using the core fields:
 
 ```toml
 [[libraries.tags]]
@@ -126,9 +126,9 @@ position = "last"
 name = "endfor"
 ```
 
-This minimal document tells tools everything they need: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
+This document is complete on its own: it tells tools that `for` is a block tag (not standalone), yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-Now here’s the same definition with a few optional hints sprinkled in:
+If you want to add optional hints for tooling, you can extend it like this:
 
 ```toml
 [[libraries.tags]]
@@ -184,7 +184,7 @@ Let’s pretend you’ve written a custom `card` block tag that takes a required
 {% endcard %}
 ```
 
-The minimal TagSpec representation looks like this:
+The TagSpec using only the core fields looks like this:
 
 ```toml
 version = "0.1.0"
@@ -207,9 +207,9 @@ required = true
 name = "endcard"
 ```
 
-This tells tools to load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
+This version already gives tooling everything it needs: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
 
-And here’s an expanded version that shows how `extra` fields can add richer context:
+If you want to layer on optional metadata, you can extend it like this:
 
 ```toml
 version = "0.1.0"
