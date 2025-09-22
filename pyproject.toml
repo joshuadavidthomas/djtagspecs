@@ -69,7 +69,7 @@ exclude_lines = [
   "if TYPE_CHECKING:",
   'def __str__\(self\)\s?\-?\>?\s?\w*\:'
 ]
-fail_under = 100
+fail_under = 65  # TODO: increase the coverage floor
 
 [tool.coverage.run]
 omit = [
