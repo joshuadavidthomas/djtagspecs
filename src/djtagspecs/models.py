@@ -10,8 +10,14 @@ from pydantic import field_validator
 from pydantic import model_validator
 
 
+def _default_spec_version() -> str:
+    from . import __version__
+
+    return __version__
+
+
 class TagSpec(BaseModel):
-    version: str
+    version: str = Field(default_factory=_default_spec_version)
     engine: str = Field("django")
     requires_engine: str | None = Field(None)
     extends: list[str] = Field(default_factory=list)
