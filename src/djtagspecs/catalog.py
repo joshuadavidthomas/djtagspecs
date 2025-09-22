@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import importlib.resources
 import json
 from collections.abc import Mapping
 from collections.abc import Sequence
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from urllib.parse import ParseResult
+from urllib.parse import urlparse
 
 try:
     import tomllib as toml
@@ -83,54 +86,62 @@ class TagSpecFormat(str, Enum):
 
 def load_tag_spec(path: str | Path, *, resolve_extends: bool = True) -> TagSpec:
     path = Path(path)
-    cache: dict[Path, TagSpec] = {}
+    cache: dict[str, TagSpec] = {}
+    cache_key = str(path.resolve())
     spec = (
-        _resolve_document(path, cache, stack=[])
+        _resolve_document(path, cache, stack=[], cache_key=cache_key)
         if resolve_extends
-        else _load_raw(path, cache)
+        else _load_raw(path, cache, cache_key)
     )
     validate_tag_spec(spec)
     return spec
 
 
-def _load_raw(path: Path, cache: dict[Path, TagSpec]) -> TagSpec:
-    resolved = path.resolve()
-    if resolved in cache:
-        return cache[resolved]
+def _load_raw(path: Path, cache: dict[str, TagSpec], cache_key: str) -> TagSpec:
+    if cache_key in cache:
+        return cache[cache_key]
 
-    fmt = TagSpecFormat.from_path(resolved)
+    fmt = TagSpecFormat.from_path(path)
     try:
-        payload = fmt.load(resolved)
+        payload = fmt.load(path)
     except FileNotFoundError as exc:
-        raise TagSpecLoadError(f"TagSpec document not found: {resolved}") from exc
+        raise TagSpecLoadError(f"TagSpec document not found: {path}") from exc
 
     try:
         spec = TagSpec.model_validate(payload)
     except Exception as exc:  # noqa: BLE001
         raise TagSpecLoadError(
-            f"Document {resolved} is not a valid TagSpec: {exc}"
+            f"Document {path} is not a valid TagSpec: {exc}"
         ) from exc
 
-    cache[resolved] = spec
+    cache[cache_key] = spec
     return spec
 
 
 def _resolve_document(
-    path: Path, cache: dict[Path, TagSpec], *, stack: list[Path]
+    path: Path,
+    cache: dict[str, TagSpec],
+    *,
+    stack: list[str],
+    cache_key: str | None = None,
 ) -> TagSpec:
     resolved = path.resolve()
-    if resolved in stack:
-        cycle = " -> ".join(str(p) for p in stack + [resolved])
+    key = cache_key or str(resolved)
+
+    if key in stack:
+        cycle = " -> ".join(stack + [key])
         raise TagSpecResolutionError(f"Circular extends chain detected: {cycle}")
 
-    stack.append(resolved)
-    spec = _load_raw(resolved, cache)
+    stack.append(key)
+    spec = _load_raw(resolved, cache, key)
     base: TagSpec | None = None
     for reference in spec.extends:
-        ref_path = Path(reference)
-        if not ref_path.is_absolute():
-            ref_path = resolved.parent / ref_path
-        child = _resolve_document(ref_path, cache, stack=stack)
+        child = _resolve_reference(
+            reference,
+            resolved,
+            cache,
+            stack=stack,
+        )
         base = child if base is None else merge_tag_specs(base, child)
     stack.pop()
 
@@ -139,6 +150,66 @@ def _resolve_document(
 
     merged = merge_tag_specs(base, spec)
     return merged.model_copy(update={"extends": []})
+
+
+def _resolve_reference(
+    reference: str,
+    current: Path,
+    cache: dict[str, TagSpec],
+    *,
+    stack: list[str],
+) -> TagSpec:
+    parsed = urlparse(reference)
+    if parsed.scheme == "pkg":
+        return _resolve_package_reference(reference, parsed, cache, stack=stack)
+
+    ref_path = Path(reference)
+    if not ref_path.is_absolute():
+        ref_path = current.parent / ref_path
+    ref_key = str(ref_path.resolve())
+    return _resolve_document(ref_path, cache, stack=stack, cache_key=ref_key)
+
+
+def _resolve_package_reference(
+    reference: str,
+    parsed: ParseResult,
+    cache: dict[str, TagSpec],
+    *,
+    stack: list[str],
+) -> TagSpec:
+    package = parsed.netloc or ""
+    resource_path = parsed.path.lstrip("/")
+
+    if not package:
+        raise TagSpecResolutionError(
+            f"Invalid package reference '{reference}': missing module name"
+        )
+    if not resource_path:
+        raise TagSpecResolutionError(
+            f"Invalid package reference '{reference}': missing resource path"
+        )
+
+    try:
+        root = importlib.resources.files(package)
+    except ModuleNotFoundError as exc:
+        raise TagSpecResolutionError(
+            f"Unable to resolve package reference '{reference}': package '{package}' not found"
+        ) from exc
+
+    resource = root.joinpath(resource_path)
+    if not resource.is_file():
+        raise TagSpecResolutionError(
+            f"Unable to resolve package reference '{reference}': resource '{resource_path}' not found"
+        )
+
+    cache_key = f"pkg://{package}/{resource_path}"
+    with importlib.resources.as_file(resource) as tmp_path:
+        return _resolve_document(
+            Path(tmp_path),
+            cache,
+            stack=stack,
+            cache_key=cache_key,
+        )
 
 
 def merge_tag_specs(base: TagSpec, overlay: TagSpec) -> TagSpec:

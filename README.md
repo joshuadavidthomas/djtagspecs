@@ -268,6 +268,16 @@ Flatten a catalog into a single document:
 djts flatten catalogs/djtagspecs.toml -o combined.toml
 ```
 
+### Packaged Catalogs
+
+Libraries may ship TagSpec manifests inside their Python distributions. These documents can be referenced with a `pkg://` URI, which resolves data bundled alongside a module via `importlib.resources`:
+
+```toml
+extends = ["pkg://my_library/tag_specs/django.toml"]
+```
+
+This lets tools depend on a catalog without copying it into a project checkout.
+
 ### Python API
 
 High-level helpers make it straightforward to read and write catalogs:
