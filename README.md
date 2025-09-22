@@ -145,7 +145,6 @@ extra = { docs = "https://docs.djangoproject.com/en/stable/ref/templates/builtin
 name = "item"
 kind = "variable"
 required = true
-extra = { hint = "loop_variable" }
 
 [[libraries.tags.args]]
 name = "in"
