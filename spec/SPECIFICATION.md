@@ -67,11 +67,15 @@ The format was born out of building the [django-language-server](https://github.
 
 Publishing the specification separately ensures the format is not tied solely to that project: other editors, linters, documentation workflows, or bespoke tools can reuse it, and broader community feedback can evolve the vocabulary over time. The hope is that a shared schema makes it easier for others to build their own analysis tooling without reinventing this foundation.
 
+Externalising the rules into configuration pays off in a few ways. Tooling no longer needs to embed bespoke knowledge of each tag implementation; a single catalogue can travel with a library or be distributed independently; and custom tag authors can describe their surface area without patching the tools themselves. TagSpecs is intended to be the interchange format for those shared catalogues.
+
 By describing a tag’s arguments, block structure, and semantics declaratively, TagSpecs supply just enough metadata for a language server (or any static tool) to validate usage, offer completions, and highlight errors without relying on runtime behaviour.
 
 ## Rationale
 
 The specification favors a declarative contract because attempts to reconstruct tag rules from runtime ASTs or ad-hoc heuristics are brittle and, quite frankly, headache-inducing. Describing tags explicitly lets tools skip complex parsing and rely on stable metadata instead.
+
+Keeping the rules in configuration also makes them inherently shareable. Multiple tools can point at the same catalogue, and custom libraries can publish their own definitions without asking downstream tooling to ship code patches. The schema aims to be a neutral interchange format rather than a prescriptive implementation detail.
 
 Choosing static configuration introduces the risk of drifting out of sync with the runtime, but each library can annotate compatibility ranges and quirks with `requires_engine` and `extra`, keeping the core schema simple while leaving room for nuance. 
 
