@@ -224,26 +224,19 @@ Read the full specification here: [spec/SPECIFICATION.md](spec/SPECIFICATION.md)
 - Validation rules
 - Extensibility mechanisms
 
-`djtagspecs` ships both the normative specification and a machine-readable schema so producers and tooling vendors can stay aligned:
-
-- **Specification** – `spec/SPECIFICATION.md` is the authoritative contract for TagSpecs. It defines the object model, terminology, validation rules, and forward-compatibility guarantees that implementers MUST follow.
-- **Schema** – `spec/schema.json` is generated from the Pydantic models and mirrors the specification. Use it to validate TagSpec documents or integrate with JSON Schema tooling.
+The repository publishes both the normative specification and a machine-readable schema so producers and tooling vendors stay aligned.
 
 ## Reference Implementation
 
-### Python Package
+The `djtagspecs` Python package bundles the models, CLI, and helper APIs described below.
 
-We provide a Python package with:
-
-- Pydantic models matching the specification
-- JSON Schema generation
-- Document validation via Pydantic
-
-#### Requirements
+### Requirements
 
 - Python 3.10, 3.11, 3.12, 3.13
 
-#### Installation
+### Installation
+
+Install from PyPI:
 
 ```bash
 python -m pip install djtagspecs
@@ -253,7 +246,7 @@ uv add djtagspecs
 uv sync
 ```
 
-### CLI Tool
+### CLI Usage
 
 Generate JSON Schema for validation:
 
@@ -263,20 +256,35 @@ djts generate-schema -o schema.json
 
 Omit `-o` to print the schema to stdout. The command guarantees the emitted schema matches the Pydantic models shipped in this distribution.
 
+Validate a catalog (resolves `extends` by default):
+
+```bash
+djts validate catalogs/djtagspecs.toml
+```
+
+Flatten a catalog into a single document:
+
+```bash
+djts flatten catalogs/djtagspecs.toml -o combined.toml
+```
+
 ### Python API
 
-The Pydantic models in `djtagspecs.models` mirror the specification. Example:
+High-level helpers make it straightforward to read and write catalogs:
 
 ```python
 from pathlib import Path
-from djtagspecs.models import TagSpec
+from djtagspecs import dump_tag_spec, load_tag_spec
 
-spec_path = Path("spec/catalog.json")
-catalog = TagSpec.model_validate_json(spec_path.read_text())
-print(catalog.engine)
+catalog_path = Path("catalogs/djtagspecs.toml")
+catalog = load_tag_spec(catalog_path)
+
+# ... mutate catalog as needed ...
+
+catalog_path.write_text(dump_tag_spec(catalog), encoding="utf-8")
 ```
 
-The models apply defaults and validate the structure of TagSpec documents.
+The underlying Pydantic models remain available via `djtagspecs.models` when you need direct access to the data structures.
 
 ## License
 
