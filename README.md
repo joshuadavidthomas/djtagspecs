@@ -90,7 +90,7 @@ To show how TagSpecs lines up with real templates, here’s Django’s built-in 
 {% endfor %}
 ```
 
-**Basic TagSpec**
+First, here’s the bare-bones TagSpec equivalent:
 
 ```toml
 [[libraries.tags]]
@@ -128,7 +128,7 @@ name = "endfor"
 
 This minimal document tells tools everything they need: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-**Adding optional metadata**
+Now here’s the same definition with a few optional hints sprinkled in:
 
 ```toml
 [[libraries.tags]]
@@ -184,7 +184,7 @@ Let’s pretend you’ve written a custom `card` block tag that takes a required
 {% endcard %}
 ```
 
-**Basic TagSpec**
+The minimal TagSpec representation looks like this:
 
 ```toml
 version = "0.1.0"
@@ -209,7 +209,7 @@ name = "endcard"
 
 This tells tools to load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
 
-**Adding optional metadata**
+And here’s an expanded version that shows how `extra` fields can add richer context:
 
 ```toml
 version = "0.1.0"
