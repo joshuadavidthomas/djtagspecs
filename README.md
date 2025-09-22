@@ -55,6 +55,9 @@ TagSpecs was created for—and powers—the [django-language-server](https://git
 **Q: I'm still confused, how exactly do I use this library?**<br />
 A: Well, you don't exactly. The specification describes a set of rules for statically defining Django template tags so that tools can parse and validate them. This repository contains that specification and a minimal Python library with the reference specification as Pydantic models.
 
+**Q: So… I don't install anything? What exactly *is* this then?**<br />
+A: It’s the blueprint that used to live quietly inside the django-language-server. Writing it down gives other tooling (linting, docs, language services) a shared spec to build against. The package ships typed models and a schema generator so tool authors can validate TagSpec files, but most Django projects won’t install it directly.
+
 **Q: Does this parse my Django templates?**<br />
 A: No. It describes tag syntax so other tools can parse templates.
 
@@ -126,9 +129,9 @@ position = "last"
 name = "endfor"
 ```
 
-This document is complete on its own: it tells tools that `for` is a block tag (not standalone), yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
+This document covers what a tool needs to know: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-Sometimes you might want to pass along extra hints—think documentation links, UI labels, or analyser defaults. Every object in the spec exposes an `extra` field for that. Here’s the same TagSpec with a few illustrative extras:
+If you want to ship extra hints—documentation links, analyser defaults, UI labels—you can hang them off the `extra` field that every object exposes. Here’s the same TagSpec with a few illustrative extras:
 
 ```toml
 [[libraries.tags]]
@@ -207,9 +210,9 @@ required = true
 name = "endcard"
 ```
 
-This version already gives tooling everything it needs: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
+This version captures the basics: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
 
-If you want to publish additional context alongside the spec— links, component names, matching rules—you can use the same `extra` field, like so:
+If you also want to publish extra context—links, component names, matching rules—you can use the same `extra` field, like so:
 
 ```toml
 version = "0.1.0"
@@ -236,7 +239,7 @@ name = "endcard"
 extra = { matches = { part = "tag", argument = "title" } }
 ```
 
-Those optional `extra` payloads add documentation links, component metadata, argument hints, and a rule that the end tag must repeat the opening tag’s `title`. None of that is required by the spec, but sharing it gives tools richer context to work with.
+Here the `extra` payloads add helpful context (docs link, component name, argument hint, and a simple matching rule). None of that is required by the spec, but it gives tooling more to work with when it’s available.
 
 ## Specification & Schema
 
