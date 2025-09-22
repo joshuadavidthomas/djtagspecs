@@ -133,7 +133,7 @@ Prior to `1.0.0`, breaking changes MAY occur in any `0.x` release and consumers 
 
 The root document captures catalog-wide metadata and the set of tag libraries it exports. A valid document MUST provide the following members unless a default is explicitly defined below:
 
-- `version` — required string identifying the TagSpecs specification version implemented by this document (for example `"0.1.0"`). Consumers MUST reject documents that advertise a version they do not understand.
+- `version` — optional string identifying the TagSpecs specification version implemented by this document (for example `"0.1.0"`). When omitted, consumers MUST assume the latest published specification version and MAY reject documents that advertise a version they do not understand.
 - `engine` — optional string identifier for the template dialect (for example `"django"`, `"jinja2"`). When omitted, consumers MUST treat the engine as `"django"`. This edition of the specification defines behaviour only for the Django dialect; non-Django engines SHOULD supply additional documentation clarifying any divergent semantics.
 - `requires_engine` — optional string constraining engine versions for the entire catalog (PEP 440 for Django). When omitted, the catalog is assumed to work with all versions recognised by the declared engine. Any child object that omits its own `requires_engine` inherits this value.
 - `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon. Entries are processed in order before applying the current document.
@@ -259,6 +259,7 @@ When the predefined hint enums are insufficient, producers MAY convey richer sem
 
 Consumers MUST interpret omitted members according to these defaults, regardless of the document’s serialization format:
 
+- `version` defaults to the latest published specification (`"0.1.0"`).
 - `engine` defaults to `"django"`.
 - `extends` defaults to an empty array.
 - `tag.args`, `end.args`, and `intermediate.args` default to empty arrays; `intermediates` defaults to an empty array.

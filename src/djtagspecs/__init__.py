@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.metadata
+
 from djtagspecs.catalog import TagSpecError
 from djtagspecs.catalog import TagSpecFormat
 from djtagspecs.catalog import TagSpecLoadError
@@ -14,6 +16,12 @@ from djtagspecs.models import Tag
 from djtagspecs.models import TagArg
 from djtagspecs.models import TagLibrary
 from djtagspecs.models import TagSpec
+
+try:
+    __version__ = importlib.metadata.version(__name__)
+except importlib.metadata.PackageNotFoundError:  # pragma: no cover
+    # editable install
+    __version__ = "0.0.0"
 
 __all__ = [
     "EndTag",

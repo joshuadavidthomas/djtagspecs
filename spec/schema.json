@@ -321,7 +321,6 @@
     }
   },
   "required": [
-    "version",
     "libraries"
   ],
   "title": "TagSpec",
