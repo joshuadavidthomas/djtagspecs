@@ -305,8 +305,8 @@ TagSpecs are designed for forward compatibility:
 Productions may combine multiple TagSpec documents. Consumers SHOULD apply the following discovery order:
 
 1. Inline configuration within `pyproject.toml` under `[tool.djtagspecs]`.
-2. `djtagspecs.toml` at the project root.
-3. `.djtagspecs.toml` at the project root.
+2. Catalog manifests explicitly selected by the calling tool (for example through CLI arguments, editor settings, or environment metadata). Tools MAY surface any serialization format they support.
+3. Default manifests at the project root when no explicit selection is provided. Implementations SHOULD look for `djtagspecs.toml` and `.djtagspecs.toml`, but MAY recognise additional filenames or extensions consistent with the serialization formats they support.
 4. Installed catalogs packaged with libraries.
 
 When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.

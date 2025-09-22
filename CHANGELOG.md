@@ -18,6 +18,14 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 ## [Unreleased]
 
+### Added
+
+- Support for resolving TagSpec manifests distributed inside Python packages via `pkg://` URIs.
+
+### Changed
+
+- Discovery guidance now prioritises tool-selected manifests and treats packaged catalogs as part of the default lookup flow, relaxing the requirement for root-level `djtagspecs.toml` files.
+
 ## [0.2.0]
 
 ### Added

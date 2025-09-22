@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib
+import sys
 from pathlib import Path
 
 import pytest
@@ -132,3 +134,52 @@ def test_tag_spec_defaults_version() -> None:
     )
 
     assert spec.version == __version__
+
+
+def test_resolve_package_reference(tmp_path: Path, monkeypatch) -> None:
+    package_root = tmp_path / "pkgexample"
+    package_root.mkdir()
+    (package_root / "__init__.py").write_text("", encoding="utf-8")
+    (package_root / "catalog.toml").write_text(
+        """
+        [[libraries]]
+        module = "pkg.example"
+
+        [[libraries.tags]]
+        name = "pkg_tag"
+        type = "standalone"
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    monkeypatch.syspath_prepend(str(tmp_path))
+    importlib.invalidate_caches()
+
+    document = tmp_path / "local.toml"
+    document.write_text(
+        """
+        extends = ["pkg://pkgexample/catalog.toml"]
+
+        [[libraries]]
+        module = "local.example"
+
+        [[libraries.tags]]
+        name = "local_tag"
+        type = "standalone"
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    try:
+        spec = load_tag_spec(document)
+    finally:
+        sys.modules.pop("pkgexample", None)
+
+    modules = [lib.module for lib in spec.libraries]
+    assert modules == ["pkg.example", "local.example"]
+
+    pkg_tag = next(tag for tag in spec.libraries[0].tags if tag.name == "pkg_tag")
+    local_tag = next(tag for tag in spec.libraries[1].tags if tag.name == "local_tag")
+
+    assert pkg_tag.tagtype == "standalone"
+    assert local_tag.tagtype == "standalone"
