@@ -156,7 +156,7 @@ required = true
 name = "items"
 kind = "variable"
 required = true
-extra = { hint = "iterable" }
+extra = { hint = "iterable_of:item" }
 
 [[libraries.tags.args]]
 name = "reversed"
@@ -168,14 +168,12 @@ extra = { affects = "iteration_direction", default = false }
 name = "empty"
 max = 1
 position = "last"
-extra = { label = "empty_branch" }
 
 [libraries.tags.end]
 name = "endfor"
-extra = { matches = { part = "tag", argument = "item" } }
 ```
 
-Those `extra` values are optional metadata that tooling can surface (or ignore) to provide richer feedback.
+Those `extra` values are optional metadata that tooling can surface (or ignore) to provide richer feedback. For example, a tool could link out to docs, flag that `items` is an iterable of `item`, or show that `reversed` flips iteration order.
 
 ### Documenting your own tag library
 
@@ -213,35 +211,6 @@ name = "endcard"
 ```
 
 This version captures the basics: load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
-
-If you also want to publish extra context—links, component names, matching rules—you can use the same `extra` field, like so:
-
-```toml
-version = "0.1.0"
-engine = "django"
-
-[[libraries]]
-module = "myapp.templatetags.custom"
-extra = { docs_url = "https://example.com/cards" }
-
-[[libraries.tags]]
-name = "card"
-type = "block"
-extra = { component = "card" }
-
-[[libraries.tags.args]]
-name = "title"
-kind = "literal"
-type = "keyword"
-required = true
-extra = { hint = "card_heading" }
-
-[libraries.tags.end]
-name = "endcard"
-extra = { matches = { part = "tag", argument = "title" } }
-```
-
-Here the `extra` payloads add helpful context (docs link, component name, argument hint, and a simple matching rule). None of that is required by the spec, but it gives tooling more to work with when it’s available.
 
 ## Specification & Schema
 
