@@ -70,7 +70,7 @@ A: No. It describes tag syntax so other tools can parse templates.
 A: Only if you're building tools or documenting a tag library.
 
 **Q: Where can I see more TagSpec examples right now?**<br />
-A: The most complete catalog currently lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) repository. It’s a little out of date relative to this spec, but it shows the breadth of tags already documented. The plan is to move that catalog into this project once it’s refreshed.
+A: The most complete (and only) catalog currently lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) repository. It’s a little out of date relative to this spec, but it shows the breadth of tags already documented. The plan is to move that catalog into this project ASAP.
 
 **Q: Is this an official Django project?**<br />
 A: No, it's a community specification for tooling interoperability.
@@ -162,7 +162,7 @@ extra = { hint = "iterable_of:item" }
 name = "reversed"
 kind = "modifier"
 required = false
-extra = { affects = "iteration_direction", default = false }
+extra = { affects = "iteration_direction" }
 
 [[libraries.tags.intermediates]]
 name = "empty"
