@@ -44,7 +44,7 @@ But if you step back and think about the pieces you actually need to validate us
 
 Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That repeatable bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
 
-Publishing the specification outside the language server hopefully keeps those rules from being an internal detail. Library authors can ship their own TagSpec documents, tooling authors can exchange catalogs instead of reverse-engineering each other’s heuristics, and curious Django developers get a shared vocabulary. The more people who publish and consume TagSpecs, the better the tooling ecosystem becomes.
+Publishing the specification outside the language server keeps those rules from being an internal detail. Library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and curious Django developers get a shared vocabulary.
 
 ## Real-World Usage
 
@@ -63,6 +63,9 @@ A: No. It describes tag syntax so other tools can parse templates.
 **Q: Do I need this for my Django project?**<br />
 A: Only if you're building tools or documenting a tag library.
 
+**Q: Where can I see more TagSpec examples right now?**<br />
+A: The most complete catalog currently lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) repository. It’s a little out of date relative to this spec, but it shows the breadth of tags already documented. The plan is to move that catalog into this project once it’s refreshed.
+
 **Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
 A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
 
@@ -79,7 +82,17 @@ A: TagSpec is machine-readable metadata, not narrative documentation.
 
 ### Documenting Django's `{% for %}` tag
 
-Here's how Django's `{% for %}` tag is described in TagSpecs:
+To show how TagSpecs lines up with real templates, here’s Django’s built-in `{% for %}` tag using its full syntax:
+
+```django
+{% for item in items reversed %}
+    {{ item }}
+{% empty %}
+    <p>No items available.</p>
+{% endfor %}
+```
+
+And here’s that tag expressed with the specification:
 
 ```toml
 [[libraries.tags]]
@@ -87,8 +100,24 @@ name = "for"
 type = "block"
 
 [[libraries.tags.args]]
+name = "item"
+kind = "variable"
+required = true
+
+[[libraries.tags.args]]
+kind = "literal"
+value = "in"
+required = true
+
+[[libraries.tags.args]]
 name = "items"
 kind = "variable"
+required = true
+
+[[libraries.tags.args]]
+kind = "literal"
+value = "reversed"
+required = false
 
 [[libraries.tags.intermediates]]
 name = "empty"
@@ -99,21 +128,21 @@ position = "last"
 name = "endfor"
 ```
 
-This tells tools:
-- `for` is a block tag ending with `endfor`
-- It accepts a variable argument
-- It can have an optional `empty` clause
-- The `empty` clause must come last
-
-Tools read this metadata to provide features like:
-- Syntax highlighting
-- Error detection (missing endfor, invalid empty placement)
-- Auto-completion
-- Documentation on hover
+That TagSpec captures everything a tool needs to know: `for` is a block tag (it is not standalone and has an end tag), it yields the loop variable `item`, requires the literal `in`, accepts a sequence called `items`, optionally honors the `reversed` literal, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
 ### Documenting your own tag library
 
-Here's the structure for a custom `card` block tag:
+Let’s pretend you’ve written a custom `card` block tag that takes a required `title` argument and wraps content:
+
+```django
+{% load custom %}
+
+{% card title="Welcome" %}
+  <p>Hello, world!</p>
+{% endcard %}
+```
+
+Here’s how that tag could be expressed with TagSpecs:
 
 ```toml
 version = "0.1.0"
@@ -135,43 +164,12 @@ required = true
 name = "endcard"
 ```
 
-This describes a single library (`myapp.templatetags.custom`) containing a `card` block tag. The tag requires a literal `title` argument and terminates with `endcard`.
-
-## Using TagSpecs
-
-### Typical Flow
-
-1. Template tag authors publish TagSpec documents
-2. Documents describe tag syntax in TOML, JSON, or YAML
-3. Tools read TagSpec documents (not templates) and validate them
-4. Tools use the metadata to understand template structure
-5. Tools implement their own template parsing logic using that information
-
-TagSpecs provides structure only; parsing and analysis stay in your implementation.
-
-### Example Implementation Pattern
-
-```python
-# Your tool loads TagSpecs (this library helps validate them)
-from djtagspecs.models import TagSpec
-
-spec = TagSpec.model_validate_json(...)
-
-# Your tool uses the metadata to parse templates
-# (TagSpecs doesn't do this part - that's YOUR implementation)
-for tag in spec.libraries[0].tags:
-    if tag.type == "block":
-        # Your parser knows to look for end tag
-        # Your parser validates intermediate tags
-        # Your parser checks argument kinds
-        ...
-```
+This document tells tools the essentials: load the tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a literal `title` argument, and look for a closing `endcard`.
 
 ## Specification & Schema
 
-Read the full specification: [spec/SPECIFICATION.md](spec/SPECIFICATION.md)
+Read the full specification here: [spec/SPECIFICATION.md](spec/SPECIFICATION.md). It defines:
 
-The specification defines:
 - Document structure and fields
 - Tag types (block, loader, standalone)
 - Argument kinds and semantics
@@ -188,9 +186,10 @@ The specification defines:
 ### Python Package
 
 We provide a Python package with:
+
 - Pydantic models matching the specification
 - JSON Schema generation
-- Document validation
+- Document validation via Pydantic
 
 #### Requirements
 
@@ -229,8 +228,7 @@ catalog = TagSpec.model_validate_json(spec_path.read_text())
 print(catalog.engine)
 ```
 
-The models apply defaults and validate the structure of TagSpec documents. Any unknown keys are preserved so specs can round-trip safely.
-
+The models apply defaults and validate the structure of TagSpec documents.
 
 ## License
 
