@@ -60,7 +60,7 @@ A: Well, you don't exactly. The specification describes a set of rules for stati
 **Q: So… I don't install anything? What exactly *is* this then?**<br />
 A: It’s basically the idea I had for describing Django template tags, the rules and config I wrote to parse them, formalized in prose (with a matching set of Pydantic models). By writing it down, my hope is it gives other tooling a shared spec to build against, instead of just living quietly inside [django-language-server](https://github.com/joshuadavidthomas/django-language-server).
 
-**Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
+**Q: Isn't this all a bit overboard? A whole separate specification and config just for defining template tags?**<br />
 A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
 
 **Q: Does this parse my Django templates?**<br />
