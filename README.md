@@ -28,7 +28,7 @@ If you’re a day-to-day Django developer, you can mostly keep scrolling. TagSpe
 
 If you maintain a third-party library that ships template tags, TagSpecs let you document their syntax once and share that definition with any tool that cares.
 
-If you build tools around Django templates, TagSpecs are the contract you can publish instead of baking parsing rules into your codebase.
+If you build tools around Django templates, TagSpecs give your tool a shared contract it can consume to better understand templates without baking parsing rules into your codebase.
 
 Still confused? Skip to the [examples](#examples) to see what a TagSpec document looks like in practice.
 
