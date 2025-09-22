@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 try:
     import tomllib as toml
 except ModuleNotFoundError:  # pragma: no cover
-    import tomli as toml
+    import tomli as toml  # type: ignore[no-redef]
 import tomli_w
 
 from djtagspecs.models import Tag
