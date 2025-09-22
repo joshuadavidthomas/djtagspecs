@@ -18,6 +18,16 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- Catalog loader utilities with CLI commands for validation and flattening TagSpec documents.
+
+### Changed
+
+- The `version` field in TagSpec documents is now optional; when omitted, loaders default to the package’s current release.
+
 ## [0.1.0]
 
 ### Added
@@ -26,5 +36,6 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 - `djts` CLI for generating the schema from the Pydantic models.
 - Pydantic models that codify the TagSpecs data model for validation and tooling.
 
-[unreleased]: https://github.com/joshuadavidthomas/djtagspecs/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/joshuadavidthomas/djtagspecs/compare/v0.2.0...HEAD
 [0.1.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.1.0
+[0.2.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.2.0
