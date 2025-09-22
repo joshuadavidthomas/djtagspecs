@@ -1,7 +1,7 @@
 # TagSpecs
 
 <dl>
-    <dt>Version:</dt><dd><code>0.2.0</code></dd>
+    <dt>Version:</dt><dd><code>0.3.0</code></dd>
     <dt>Author:</dt><dd>Josh Thomas</dd>
     <dt>Status:</dt><dd>Draft / Pre-1.0</dd>
     <dt>Created:</dt><dd>2025-09-20</dd>
