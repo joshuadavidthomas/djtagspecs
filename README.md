@@ -64,7 +64,7 @@ A: It’s basically the idea I had for describing Django template tags, the rule
 A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
 
 **Q: You're telling me I have to define my tags as config in addition to the actual code?**<br />
-A: Look, you don't have to do anything you don't want. TagSpecs are purely additive and entirely optional. Yes, it’s extra work on top of writing the tag code, but the goal is to keep it minimal, and the payoff is richer tooling support. Longer term I’d like to explore moving the definition closer to the tag itself (via decorators perhaps?), similar to how DRF leans on OpenAPI decorators to enrich its API descriptions straight from the code.
+A: You don't have to do anything you don't want. TagSpecs are purely additive and entirely optional. Yes, it’s extra work on top of writing the tag code, but the goal is to keep it minimal, and the payoff is richer tooling support. Longer term I’d like to explore moving the definition closer to the tag itself (via decorators perhaps?), similar to how DRF leans on OpenAPI decorators to enrich its API descriptions straight from the code.
 
 **Q: Does this parse my Django templates?**<br />
 A: No. It describes tag syntax so other tools can parse templates.
