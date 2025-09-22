@@ -38,19 +38,17 @@ I stumbled into the rules and config that lead to the TagSpec specification whil
 
 The first approach was straightforward but brittle, hard-coding the behaviour of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn’t scale *and* filled me with a sense of dread at the sheer amount of work it would take.
 
-See, the template engine is hands-off when it comes to template tags. You can pretty much do whatever you want inside one as long as you return a string when it renders. That flexibility is great for authors but makes developing AST-style heuristics almost impossible (if you have any ideas on how to do so, please let me know!). Even the notion of an end tag is just convention, Django doesn’t enforce `end<tag_name>`.
+See, the template engine is hands-off when it comes to template tags. You can pretty much do whatever you want inside one as long as you return a string when it renders. That flexibility is great for authors but makes developing AST-style heuristics almost impossible (if you have any ideas on how to do so, please let me know!). Even the name of an end tag is just convention, Django doesn’t enforce `end<tag_name>`.
 
 But if you step back and think about the pieces you actually need to validate usage, the list is surprisingly small: the tag’s name, the arguments it accepts, whether it requires a closing tag, and which intermediate tags are allowed before that closing tag.
 
 Once that clicked, the only hard part of the work was writing the rules down. Capture the syntax, block structure, and semantics in a structured document and the language server can reuse it. That repeatable bit turned into the specification contained in this repository: a declarative format that stores the knowledge instead of the code that interprets it.
 
-Publishing the specification outside the language server keeps those rules from being an internal detail. Library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and curious Django developers get a shared vocabulary.
+Publishing the specification outside the language server keeps those rules from being an internal detail. The end goal is library authors can ship their own TagSpec documents, tooling authors can swap catalogs instead of each crafting bespoke parsing logic, and curious Django developers get a shared vocabulary.
 
 ## Real-World Usage
 
-TagSpecs was created for and powers the [django-language-server](https://github.com/joshuadavidthomas/django-language-server), which provides template diagnostics without importing user code and static validation of tag usage. 
-
-The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyze templates—all without executing Django code.
+TagSpecs was created for—and powers—the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyse templates without importing user code or executing Django.
 
 ## FAQ
 
@@ -67,7 +65,7 @@ A: Only if you're building tools or documenting a tag library.
 A: The most complete catalog currently lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) repository. It’s a little out of date relative to this spec, but it shows the breadth of tags already documented. The plan is to move that catalog into this project once it’s refreshed.
 
 **Q: Isn't this all a bit overboard? A whole specification just for defining template tags?**<br />
-A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea.
+A: Look, it's *an* idea for how to do this without utilizing a Django runtime, I never said it was a *good* idea. If you’ve got a better one, I’m all ears.
 
 **Q: Is this an official Django project?**<br />
 A: No, it's a community specification for tooling interoperability.
@@ -92,7 +90,7 @@ To show how TagSpecs lines up with real templates, here’s Django’s built-in 
 {% endfor %}
 ```
 
-And here’s that tag expressed with the specification:
+**Basic TagSpec**
 
 ```toml
 [[libraries.tags]]
@@ -105,8 +103,8 @@ kind = "variable"
 required = true
 
 [[libraries.tags.args]]
-kind = "literal"
-value = "in"
+name = "in"
+kind = "syntax"
 required = true
 
 [[libraries.tags.args]]
@@ -115,8 +113,8 @@ kind = "variable"
 required = true
 
 [[libraries.tags.args]]
-kind = "literal"
-value = "reversed"
+name = "reversed"
+kind = "modifier"
 required = false
 
 [[libraries.tags.intermediates]]
@@ -128,7 +126,51 @@ position = "last"
 name = "endfor"
 ```
 
-That TagSpec captures everything a tool needs to know: `for` is a block tag (it is not standalone and has an end tag), it yields the loop variable `item`, requires the literal `in`, accepts a sequence called `items`, optionally honors the `reversed` literal, allows a single `empty` branch that must appear last, and closes with `endfor`.
+This minimal document tells tools everything they need: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
+
+**Adding optional metadata**
+
+```toml
+[[libraries.tags]]
+name = "for"
+type = "block"
+extra = { docs = "https://docs.djangoproject.com/en/stable/ref/templates/builtins/#for" }
+
+[[libraries.tags.args]]
+name = "item"
+kind = "variable"
+required = true
+extra = { hint = "loop_variable" }
+
+[[libraries.tags.args]]
+name = "in"
+kind = "syntax"
+required = true
+
+[[libraries.tags.args]]
+name = "items"
+kind = "variable"
+required = true
+extra = { hint = "iterable" }
+
+[[libraries.tags.args]]
+name = "reversed"
+kind = "modifier"
+required = false
+extra = { affects = "iteration", default = false }
+
+[[libraries.tags.intermediates]]
+name = "empty"
+max = 1
+position = "last"
+extra = { label = "empty_branch" }
+
+[libraries.tags.end]
+name = "endfor"
+extra = { matches = { part = "tag", argument = "item" } }
+```
+
+Because every object in the spec exposes an `extra` field, producers can attach documentation links, hints, defaults, or cross-references that downstream tooling may surface to users.
 
 ### Documenting your own tag library
 
@@ -142,7 +184,7 @@ Let’s pretend you’ve written a custom `card` block tag that takes a required
 {% endcard %}
 ```
 
-Here’s how that tag could be expressed with TagSpecs:
+**Basic TagSpec**
 
 ```toml
 version = "0.1.0"
@@ -158,13 +200,43 @@ type = "block"
 [[libraries.tags.args]]
 name = "title"
 kind = "literal"
+type = "keyword"
 required = true
 
 [libraries.tags.end]
 name = "endcard"
 ```
 
-This document tells tools the essentials: load the tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a literal `title` argument, and look for a closing `endcard`.
+This tells tools to load tags from `myapp.templatetags.custom`, expect a block tag named `card`, require a keyword `title` argument, and look for a closing `endcard`.
+
+**Adding optional metadata**
+
+```toml
+version = "0.1.0"
+engine = "django"
+
+[[libraries]]
+module = "myapp.templatetags.custom"
+extra = { docs_url = "https://example.com/cards" }
+
+[[libraries.tags]]
+name = "card"
+type = "block"
+extra = { component = "card" }
+
+[[libraries.tags.args]]
+name = "title"
+kind = "literal"
+type = "keyword"
+required = true
+extra = { hint = "card_heading" }
+
+[libraries.tags.end]
+name = "endcard"
+extra = { matches = { part = "tag", argument = "title" } }
+```
+
+Here the optional `extra` payloads add documentation links, component metadata, argument hints, and a rule that the end tag must repeat the opening tag’s `title`. None of that is required by the spec, but sharing it gives tools richer context to work with.
 
 ## Specification & Schema
 
