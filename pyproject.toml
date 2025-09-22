@@ -45,8 +45,8 @@ version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
     "<dt>Version:</dt><dd><code>{version}</code></dd>",
 ]
 "pyproject.toml" = [
-    'version = "{version}"',
-    'current_version = "{version}"',
+    '^version = "{version}"',
+    '^current_version = "{version}"',
 ]
 
 [tool.ruff]
