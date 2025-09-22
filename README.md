@@ -36,7 +36,7 @@ Still confused? Skip to the [examples](#examples) to see what a TagSpec document
 
 I stumbled into the rules and config that lead to the TagSpec specification while working on [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface diagnostics statically without importing Django or executing user code.
 
-The first approach was straightforward but brittle, hard-coding the behaviour of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn’t scale *and* filled me with a sense of dread at the sheer amount of work it would take.
+The first approach was straightforward but brittle, hard-coding the behavior of Django’s built-in tags. That plan fell apart once I thought about third-party libraries and custom tags. There’s no limit to how many exist in the wild, and baking the rules into a language server both doesn’t scale *and* filled me with a sense of dread at the sheer amount of work it would take.
 
 See, the template engine is hands-off when it comes to template tags. You can pretty much do whatever you want inside one as long as you return a string when it renders. That flexibility is great for authors but makes developing AST-style heuristics almost impossible (if you have any ideas on how to do so, please let me know!). Even the name of an end tag is just convention, Django doesn’t enforce `end<tag_name>`.
 
@@ -50,7 +50,7 @@ Publishing the specification outside the language server keeps those rules from 
 
 ## Real-World Usage
 
-TagSpecs was created for and powers [django-language-server's](https://github.com/joshuadavidthomas/django-language-server) diagnostics. The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyse templates without importing user code or executing Django.
+TagSpecs was created for and powers [django-language-server's](https://github.com/joshuadavidthomas/django-language-server) diagnostics. The language server reads TagSpec documents to understand available tags, then uses that knowledge to analyze templates without importing user code or executing Django.
 
 ## FAQ
 
@@ -133,7 +133,7 @@ name = "endfor"
 
 This document covers what a tool needs to know: `for` is a block tag (not standalone), it yields a loop variable called `item`, requires the syntactic keyword `in`, accepts a sequence called `items`, optionally honors a `reversed` modifier, allows a single `empty` branch that must appear last, and closes with `endfor`.
 
-If you want to ship extra hints (think documentation links, analyser defaults, UI labels, etc.) you can hang them off the `extra` field that every object exposes. Here’s the same TagSpec with a few illustrative extras:
+If you want to ship extra hints (think documentation links, analyzer defaults, UI labels, etc.) you can hang them off the `extra` field that every object exposes. Here’s the same TagSpec with a few illustrative extras:
 
 ```toml
 [[libraries.tags]]
