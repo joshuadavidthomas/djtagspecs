@@ -21,7 +21,9 @@ class TagSpec(BaseModel):
     engine: str = Field("django")
     requires_engine: str | None = Field(None)
     extends: list[str] = Field(default_factory=list)
-    libraries: list[TagLibrary]
+    libraries: list[TagLibrary] = Field(
+        default_factory=list, json_schema_extra={"default": []}
+    )
     extra: dict[str, Any] | None = Field(None)
 
     @field_validator("libraries")
@@ -37,7 +39,7 @@ class TagSpec(BaseModel):
 class TagLibrary(BaseModel):
     module: str
     requires_engine: str | None = Field(None)
-    tags: list[Tag]
+    tags: list[Tag] = Field(default_factory=list, json_schema_extra={"default": []})
     extra: dict[str, Any] | None = Field(None)
 
     @field_validator("tags")
@@ -54,8 +56,10 @@ class Tag(BaseModel):
     name: str
     tagtype: TagType = Field(alias="type")
     end: EndTag | None = Field(None)
-    intermediates: list[IntermediateTag] = Field(default_factory=list)
-    args: list[TagArg] = Field(default_factory=list)
+    intermediates: list[IntermediateTag] = Field(
+        default_factory=list, json_schema_extra={"default": []}
+    )
+    args: list[TagArg] = Field(default_factory=list, json_schema_extra={"default": []})
     extra: dict[str, Any] | None = Field(None)
 
     @model_validator(mode="after")
@@ -108,7 +112,7 @@ TagType = Literal["block", "loader", "standalone"]
 
 class IntermediateTag(BaseModel):
     name: str
-    args: list[TagArg] = Field(default_factory=list)
+    args: list[TagArg] = Field(default_factory=list, json_schema_extra={"default": []})
     min: int | None = Field(None, ge=0)
     max: int | None = Field(None, ge=0)
     position: Position = Field("any")
@@ -140,7 +144,7 @@ Position = Literal["any", "last"]
 
 class EndTag(BaseModel):
     name: str
-    args: list[TagArg] = Field(default_factory=list)
+    args: list[TagArg] = Field(default_factory=list, json_schema_extra={"default": []})
     required: bool = Field(True)
     extra: dict[str, Any] | None = Field(None)
 
