@@ -21,6 +21,8 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 ### Changed
 
 - Block tag specs may now omit `end`, with the conventional `end<name>` closing tag provided by default.
+- Specification guidance now treats omitted `libraries`, arguments, and intermediates as permissive defaults to encourage progressive enhancement, with minimal examples for each tag kind.
+- Pydantic models normalise missing collections (libraries, tags, args, intermediates) to empty lists and the generated JSON Schema now advertises those defaults.
 
 ## [0.3.0]
 
@@ -53,4 +55,4 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 [unreleased]: https://github.com/joshuadavidthomas/djtagspecs/compare/v0.3.0...HEAD
 [0.1.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.1.0
 [0.2.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.2.0
-[0.2.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.3.0
+[0.3.0]: https://github.com/joshuadavidthomas/djtagspecs/releases/tag/v0.3.0
