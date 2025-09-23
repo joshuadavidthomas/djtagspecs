@@ -136,7 +136,10 @@ The root document captures catalog-wide metadata and the set of tag libraries it
 - `version` — optional string identifying the TagSpecs specification version implemented by this document (for example `"0.1.0"`). When omitted, consumers MUST assume the latest published specification version and MAY reject documents that advertise a version they do not understand.
 - `engine` — optional string identifier for the template dialect (for example `"django"`, `"jinja2"`). When omitted, consumers MUST treat the engine as `"django"`. This edition of the specification defines behaviour only for the Django dialect; non-Django engines SHOULD supply additional documentation clarifying any divergent semantics.
 - `requires_engine` — optional string constraining engine versions for the entire catalog (PEP 440 for Django). When omitted, the catalog is assumed to work with all versions recognised by the declared engine. Any child object that omits its own `requires_engine` inherits this value.
-- `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon. Entries are processed in order before applying the current document.
+- `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon.
+    - Entries are processed left to right before applying the current document.
+    - Each entry MAY reference a relative or absolute file path, directory, glob pattern, or URI (for example `pkg://`).
+    - Directory and glob handling follow the rules in [Discovery and Composition](#discovery-and-composition), including lexicographic expansion and implementation-defined filename support.
 - `libraries` — array of TagLibrary objects. Producers SHOULD include the member even when no libraries are declared. Consumers MUST normalise a missing value to an empty array, and library modules MUST remain unique within a document.
 - `extra` — optional object for catalog-level metadata not otherwise covered by this specification (for example documentation URLs, provenance, or tool-specific flags).
 
@@ -286,7 +289,56 @@ TagSpecs are intended to be adopted incrementally. Authors MAY publish the minim
 
 ### Identity and Ordering
 
-Tag identity within a document is defined by the tuple `{engine, library.module, tag.name}`. Documents that overlay one another MUST use this composite key when merging tags. Arrays preserve authoring order. Consumers MUST NOT reorder `libraries`, `tags`, `args`, or `intermediates` unless explicitly directed by the specification.
+Overlay evaluation order is deterministic. Consumers apply documents in the sequence resolved by `extends[0]`, `extends[1]`, … `extends[n]`, with the current document evaluated last.
+
+Library identity is defined by `{engine, library.module}`. Tag identity within a document is defined by the tuple `{engine, library.module, tag.name}`. Documents that overlay one another MUST use these composite keys when merging.
+
+When two documents contribute the same object:
+
+- Scalar fields adopt the last non-null value encountered in overlay order.
+- Object fields—including any `extra` member—merge shallowly, with later documents winning on key collision.
+- Arrays of named items (`args`, `intermediates`, and `end.args`) merge by `name`. Later documents replace existing entries with the same `name`; unique names append in the order they appear.
+- All other arrays (for example `libraries` and `tags`) append new items in document order while preserving the original ordering of earlier items. Consumers MUST NOT reorder array members unless explicitly directed by this specification.
+
+#### Example overlay
+
+Given a base catalog that exports a minimal `hero` block tag:
+
+```toml
+# catalogs/base.toml
+version = "0.3.0"
+
+[[libraries]]
+module = "myapp.templatetags.hero"
+
+[[libraries.tags]]
+name = "hero"
+type = "block"
+```
+
+And an overlay that extends it to spell out arguments and intermediates while reusing the structural defaults from the base document:
+
+```toml
+# catalogs/hero-overlay.toml
+extends = ["catalogs/base.toml"]
+
+[[libraries]]
+module = "myapp.templatetags.hero"
+
+[[libraries.tags]]
+name = "hero"
+
+[[libraries.tags.args]]
+name = "title"
+kind = "literal"
+required = true
+
+[[libraries.tags.intermediates]]
+name = "else"
+position = "last"
+```
+
+Loading `catalogs/hero-overlay.toml` first applies the base document, then the overlay. Because both files contribute the same tag identity `{engine="django", module="myapp.templatetags.hero", name="hero"}`, the overlay augments the minimal definition: `hero` remains a block tag, gains the required `title` argument, and receives the `else` intermediate. No other tags are affected, and the base file stays valid for consumers that do not load the overlay.
 
 ### Validation
 
@@ -313,6 +365,7 @@ TagSpecs are designed for forward compatibility:
 
 - Unknown object members at any level MUST be preserved during round-tripping.
 - Producers MAY introduce vendor-specific metadata on any object. Using the provided `extra` member is RECOMMENDED to minimise clashes, but consumers MUST tolerate additional fields even when they appear elsewhere.
+- Any object MAY record provenance using `extra.source` (string path or URI). Consumers MUST preserve this value during round-tripping.
 - New `TagArg.kind` values may be introduced in future revisions. Consumers MUST ignore kinds they do not recognise while retaining them.
 - Additional metadata keys or values under `extra.*` (including new `hint`, `affects`, or `choices` vocabularies) may appear at any time. Consumers MUST preserve unknown keys and values for round-tripping.
 - Additional top-level fields may appear in future versions and MUST NOT cause validation failures.
@@ -326,7 +379,11 @@ Productions may combine multiple TagSpec documents. Consumers SHOULD apply the f
 3. Default manifests at the project root when no explicit selection is provided. Implementations SHOULD look for `djtagspecs.toml` and `.djtagspecs.toml`, but MAY recognise additional filenames or extensions consistent with the serialization formats they support.
 4. Installed catalogs packaged with libraries.
 
-When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.
+When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file.
+
+Directory and glob entries MUST expand to the matching, non-recursive set of manifest files supported by the implementation, sorted lexicographically before being appended to the overlay chain. Implementations SHOULD document which patterns they recognise and SHOULD, at minimum, accept common TagSpec serialisations such as `.toml`, `.json`, `.yaml`, or `.yml`.
+
+Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.
 
 An inline configuration uses the same structure as standalone files. For example:
 

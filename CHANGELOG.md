@@ -23,6 +23,7 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 - Block tag specs may now omit `end`, with the conventional `end<name>` closing tag provided by default.
 - Specification guidance now treats omitted `libraries`, arguments, and intermediates as permissive defaults to encourage progressive enhancement, with minimal examples for each tag kind.
 - Pydantic models normalise missing collections (libraries, tags, args, intermediates) to empty lists and the generated JSON Schema now advertises those defaults.
+- Clarified `extends` resolution, provenance recording via `extra.source`, and deterministic merge semantics for overlays.
 
 ## [0.3.0]
 
