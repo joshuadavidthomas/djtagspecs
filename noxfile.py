@@ -13,14 +13,10 @@ PY310 = "3.10"
 PY311 = "3.11"
 PY312 = "3.12"
 PY313 = "3.13"
-PY_VERSIONS = [PY310, PY311, PY312, PY313]
+PY314 = "3.14"
+PY_VERSIONS = [PY310, PY311, PY312, PY313, PY314]
 PY_DEFAULT = PY_VERSIONS[0]
 PY_LATEST = PY_VERSIONS[-1]
-
-
-def version(ver: str) -> tuple[int, ...]:
-    """Convert a string version to a tuple of ints, e.g. "3.10" -> (3, 10)"""
-    return tuple(map(int, ver.split(".")))
 
 
 @nox.session
