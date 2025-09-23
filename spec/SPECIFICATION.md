@@ -409,7 +409,7 @@ name = "include"
 type = "loader"
 ```
 
-To model a loader that also supports block syntax, later revisions may add `end` (and optionally `intermediates`) without invalidating earlier consumers:
+To progressively tighten validation without introducing a closing tag, later revisions may add argument definitions while keeping the tag single-node:
 
 ```toml
 [[libraries]]
@@ -419,12 +419,24 @@ module = "django.template.loader_tags"
 name = "include"
 type = "loader"
 
-[libraries.tags.end]
-name = "endinclude"
-
 [[libraries.tags.args]]
 name = "template"
 kind = "literal"
+
+[[libraries.tags.args]]
+name = "with"
+kind = "syntax"
+required = false
+
+[[libraries.tags.args]]
+name = "bindings"
+kind = "assignment"
+required = false
+
+[[libraries.tags.args]]
+name = "only"
+kind = "modifier"
+required = false
 ```
 
 ### Minimal Standalone Tag
