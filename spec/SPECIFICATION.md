@@ -63,7 +63,72 @@ Django’s template engine intentionally keeps tag semantics flexible: the core 
 
 That variability makes heuristics brittle at best. Reverse-engineering the intent of even Django’s built-in tags requires bespoke knowledge of each implementation. TagSpecs introduce an explicit, machine-readable contract so tools can recover the structural and semantic information that runtime code currently hides without guesswork.
 
-The format was born out of building the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface template diagnostics statically, without importing user code or executing the Django runtime. Template tags commonly signal misuse by raising `TemplateSyntaxError`, `VariableDoesNotExist`, or other exceptions during rendering—far too late for editor tooling. 
+Consider Django’s built-in `{% block %}` tag. Both of these forms are valid:
+
+```django
+{% block content %}
+    ...
+{% endblock %}
+
+{% block content %}
+    ...
+{% endblock content %}
+```
+
+Detecting the required argument on the opening tag, the optional name on the closing tag, and verifying that both align is deceptively hard outside the template engine. The implementation in `django.template.loader_tags` manually splits tokens, tracks previously seen block names, and negotiates the optional name on the closing tag inside `do_block`:
+
+```python
+@register.tag("block")
+def do_block(parser, token):
+    bits = token.contents.split()
+    if len(bits) != 2:
+        raise TemplateSyntaxError("'%s' tag takes only one argument" % bits[0])
+    block_name = bits[1]
+    try:
+        if block_name in parser.__loaded_blocks:
+            raise TemplateSyntaxError(
+                "'%s' tag with name '%s' appears more than once" % (bits[0], block_name)
+            )
+        parser.__loaded_blocks.append(block_name)
+    except AttributeError:  
+        parser.__loaded_blocks = [block_name]
+    nodelist = parser.parse(("endblock",))
+    endblock = parser.next_token()
+    acceptable_endblocks = ("endblock", "endblock %s" % block_name)
+    if endblock.contents not in acceptable_endblocks:
+        parser.invalid_block_tag(endblock, "endblock", acceptable_endblocks)
+    return BlockNode(block_name, nodelist)
+```
+
+From a static tooling perspective, reconstructing those rules means importing Django, executing parser logic, and sidestepping context-sensitive behaviour. A TagSpec captures the same contract declaratively:
+
+```toml
+[[libraries]]
+module = "django.template.loader_tags"
+
+[[libraries.tags]]
+name = "block"
+type = "block"
+
+[[libraries.tags.args]]
+name = "name"
+kind = "literal"
+
+[libraries.tags.end]
+name = "endblock"
+
+[[libraries.tags.end.args]]
+name = "name"
+kind = "literal"
+required = false
+extra = { matches = { part = "tag", argument = "name" } }
+```
+
+With that document in hand, a validator can confirm the lone opening argument, synthesise `endblock` when the closing tag is omitted, and enforce the optional name match—all without touching runtime internals.
+
+Could a tool just import Django and reuse the `do_block` parser? Technically yes, but the runtime API is geared entirely toward rendering: it mutates parser state, instantiates `BlockNode` objects, and enforces syntax by throwing `TemplateSyntaxError` (and related runtime exceptions such as `VariableDoesNotExist`) as side effects while compiling the template. Static tooling would need to execute Django’s parser, evaluate user-defined tag modules, and reverse-engineer  details from AST objects that were never designed to expose them.
+
+Those limitations surfaced while building [django-language-server](https://github.com/joshuadavidthomas/django-language-server). Without a declarative contract to lean on, the project had to choose between running the entire parser or leaving authors blind to those errors. TagSpecs provide the missing middle ground: capture the rules once, share them across projects, surface diagnostics before the template ever hits the engine, and let any editor, linter, or CI pipeline consume that knowledge without firing up Django at all.
 
 Publishing the specification separately ensures the format is not tied solely to that project: other editors, linters, documentation workflows, or bespoke tools can reuse it, and broader community feedback can evolve the vocabulary over time. The hope is that a shared schema makes it easier for others to build their own analysis tooling without reinventing this foundation.
 
