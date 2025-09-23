@@ -159,17 +159,17 @@ Each entry in `libraries.tags` describes a single template tag exposed by the en
 - `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`. This maps to `TagType`.
 - `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
 - `intermediates` — array of `IntermediateTag` objects describing markers admitted within the tag body. Only meaningful when the tag behaves as a block (for example `type = "block"` or `type = "loader"` with block support). Defaults to an empty array.
-- `end` — optional `EndTag` object describing the closing tag of a block. 
-    - `block` tags MUST define `end`. 
-    - `loader` tags MAY define `end` when the tag implementation supports block syntax. 
+- `end` — optional `EndTag` object describing the closing tag of a block.
     - `standalone` tags MUST NOT provide `end`.
+    - `block` tags MAY omit `end`. If omitted, consumers MUST synthesise the defaults described in [End Tag Defaults](#end-tag-defaults) when absent.
+    - `loader` tags MAY define `end` when the tag implementation supports block syntax and MAY rely on the same defaults when omitted.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers MUST ignore unknown members inside `extra`.
 
 ### Tag Types
 
 #### Block Tag
 
-`block` tags enclose a region of the template and optionally admit intermediate markers. They require a matching end tag and may control context within their body. Examples include `if`, `for`, and `with`.
+`block` tags enclose a region of the template and optionally admit intermediate markers. Template usage always terminates with a matching end tag; when the spec omits `end`, consumers MUST apply the defaults in [End Tag Defaults](#end-tag-defaults). Examples include `if`, `for`, and `with`.
 
 #### Loader Tag
 
@@ -190,6 +190,17 @@ The `EndTag` object describes the closing token for block and block-capable load
 - `name` — string naming the closing tag (for example `"endfor"`).
 - `args` — array of `TagArg` objects describing the arguments accepted by the closing tag. Defaults to an empty array and follows the same ordering and semantics as opening-tag arguments.
 - `required` — boolean indicating whether the closing tag must appear explicitly. Defaults to `true`. When `false`, the closing token is optional and may be implied by template termination or a disallowed token.
+
+#### End Tag Defaults
+
+For `type = "block"` tags:
+
+- When `end` is omitted, consumers MUST synthesise an `EndTag` object with:
+    - `name = "end" + tag.name`
+    - `args = []`
+    - `required = true`
+
+An explicitly provided `end` object overrides these defaults. Block-capable `loader` tags MAY adopt the same behaviour. Standalone tags MUST NOT supply `end`.
 
 ### Intermediate Tags
 
@@ -264,6 +275,7 @@ Consumers MUST interpret omitted members according to these defaults, regardless
 - `extends` defaults to an empty array.
 - `tag.args`, `end.args`, and `intermediate.args` default to empty arrays; `intermediates` defaults to an empty array.
 - `end.required` defaults to `true`.
+- `block` tags without an explicit `end` are normalised using the defaults in [End Tag Defaults](#end-tag-defaults).
 - `arg.required` defaults to `true`; `arg.type` defaults to `"both"`.
 - `intermediate.position` defaults to `"any"`; `min` and `max` default to `null` (meaning unspecified).
 
@@ -280,7 +292,7 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 - A library omits `module`.
 - Two libraries declare the same `module` value within a single document.
 - A tag omits `name` or `type`.
-- `type = "block"` but `end` is missing or `end.name` is empty.
+- A tag provides an explicit `end` object whose `name` is missing or empty.
 - `type = "standalone"` yet `end` or `intermediates` are supplied.
 - `intermediate.max` is provided and less than `intermediate.min`.
 - Multiple tags share the same `{engine, library.module, name}` identity within a document.

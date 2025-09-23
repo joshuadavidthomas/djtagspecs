@@ -18,6 +18,10 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 ## [Unreleased]
 
+### Changed
+
+- Block tag specs may now omit `end`, with the conventional `end<name>` closing tag provided by default.
+
 ## [0.3.0]
 
 ### Added
