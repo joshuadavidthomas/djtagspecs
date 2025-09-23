@@ -75,7 +75,9 @@ Consider Django’s built-in `{% block %}` tag. Both of these forms are valid:
 {% endblock content %}
 ```
 
-Detecting the required argument on the opening tag, the optional name on the closing tag, and verifying that both align is deceptively hard outside the template engine. The implementation in `django.template.loader_tags` manually splits tokens, tracks previously seen block names, and negotiates the optional name on the closing tag inside `do_block`:
+At a glance this looks trivial—`block` feels like a simple tag—and in isolation you could hard-code its parsing rules. But that approach collapses once you account for the rest of Django’s built-ins, let alone the endless third-party or project-defined tags. 
+
+Even this supposedly simple case hides engine-specific logic: detecting the required argument on the opening tag, the optional name on the closing tag, and verifying that both align is deceptively hard outside the template engine. The implementation in `django.template.loader_tags` manually splits tokens, tracks previously seen block names, and negotiates the optional name on the closing tag inside `do_block`:
 
 ```python
 @register.tag("block")
@@ -100,7 +102,7 @@ def do_block(parser, token):
     return BlockNode(block_name, nodelist)
 ```
 
-From a static tooling perspective, reconstructing those rules means importing Django, executing parser logic, and sidestepping context-sensitive behaviour. A TagSpec captures the same contract declaratively:
+`block` is actually one of the simpler built-ins; other tags layer on positional shorthands, optional intermediates, or bespoke validation spread across multiple helpers. From a static tooling perspective, reconstructing those rules means importing Django, executing parser logic, and sidestepping context-sensitive behaviour. A TagSpec captures the same contract declaratively:
 
 ```toml
 [[libraries]]
