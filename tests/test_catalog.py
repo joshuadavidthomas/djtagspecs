@@ -183,3 +183,19 @@ def test_resolve_package_reference(tmp_path: Path, monkeypatch) -> None:
 
     assert pkg_tag.tagtype == "standalone"
     assert local_tag.tagtype == "standalone"
+
+
+def test_block_tag_defaults_end_tag() -> None:
+    tag = Tag.model_validate({"name": "hero", "type": "block"})
+
+    assert tag.end is not None
+    assert tag.end.name == "endhero"
+    assert tag.end.args == []
+    assert tag.end.required is True
+
+
+def test_explicit_end_requires_name() -> None:
+    with pytest.raises(ValueError) as excinfo:
+        Tag.model_validate({"name": "hero", "type": "block", "end": {"name": ""}})
+
+    assert "MUST provide a name" in str(excinfo.value)

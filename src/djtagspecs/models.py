@@ -60,9 +60,14 @@ class Tag(BaseModel):
 
     @model_validator(mode="after")
     def validate_tag_type_constraints(self):
+        if self.end and not self.end.name:
+            raise ValueError(
+                f"End tag for '{self.name}' MUST provide a name when declared"
+            )
+
         if self.tagtype == "block":
-            if not self.end:
-                raise ValueError(f"Block tag '{self.name}' MUST define an end tag")
+            if self.end is None:
+                self.end = EndTag(name=f"end{self.name}")
         elif self.tagtype == "standalone":
             if self.end:
                 raise ValueError(
