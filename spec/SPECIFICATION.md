@@ -75,7 +75,7 @@ Consider Django’s built-in `{% block %}` tag. Both of these forms are valid:
 {% endblock content %}
 ```
 
-At a glance this looks trivial—`block` feels like a simple tag—and in isolation you could hard-code its parsing rules. But that approach collapses once you account for the rest of Django’s built-ins, let alone the endless third-party or project-defined tags. 
+At a glance this looks trivial and in isolation you could hard-code its parsing rules. But that approach collapses once you account for the rest of Django’s built-ins, let alone the endless third-party or project-defined tags. 
 
 Even this supposedly simple case hides engine-specific logic: detecting the required argument on the opening tag, the optional name on the closing tag, and verifying that both align is deceptively hard outside the template engine. The implementation in `django.template.loader_tags` manually splits tokens, tracks previously seen block names, and negotiates the optional name on the closing tag inside `do_block`:
 
