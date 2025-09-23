@@ -51,6 +51,10 @@ version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 [tool.bumpver.file_patterns]
 "spec/SPECIFICATION.md" = [
     "<dt>Version:</dt><dd><code>{version}</code></dd>",
+    '^version = "{version}"',
+]
+"README.md" = [
+    '^version = "{version}"',
 ]
 "pyproject.toml" = [
     '^version = "{version}"',
