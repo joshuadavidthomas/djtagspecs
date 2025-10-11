@@ -8,6 +8,7 @@ dev = [
     "nox[uv]>=2025.5.1",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "pytest-django>=4.11.1",
     "pytest-randomly>=4.0.1",
     "pytest-xdist>=3.8.0",
 ]
@@ -111,10 +112,11 @@ module = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --dist loadfile --doctest-modules"
+DJANGO_SETTINGS_MODULE = "tests.settings"
+addopts = "--create-db -n auto --dist loadfile --doctest-modules"
 norecursedirs = ".* bin build dist *.egg htmlcov logs node_modules templates venv"
 python_files = "tests.py test_*.py *_tests.py"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 
 [tool.ruff]
