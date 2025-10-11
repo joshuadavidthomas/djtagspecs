@@ -8,10 +8,13 @@ dev = [
     "nox[uv]>=2025.5.1",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "pytest-django>=4.11.1",
     "pytest-randomly>=4.0.1",
     "pytest-xdist>=3.8.0",
 ]
 types = [
+    "django-stubs>=5.2.7",
+    "django-stubs-ext>=5.2.7",
     "mypy>=1.18.2",
 ]
 
@@ -20,7 +23,9 @@ authors = [
     { name = "Josh Thomas", email = "josh@joshthomas.dev" }
 ]
 dependencies = [
+    "django>=4.2",
     "pydantic>=2.11.9",
+    "rich>=14.2.0",
     "tomli>=2.0.1;python_version<'3.11'",
     "tomli-w>=1.0.0",
     "typer>=0.19.1",
@@ -109,10 +114,11 @@ module = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --dist loadfile --doctest-modules"
+DJANGO_SETTINGS_MODULE = "tests.settings"
+addopts = "--create-db -n auto --dist loadfile --doctest-modules"
 norecursedirs = ".* bin build dist *.egg htmlcov logs node_modules templates venv"
 python_files = "tests.py test_*.py *_tests.py"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 
 [tool.ruff]

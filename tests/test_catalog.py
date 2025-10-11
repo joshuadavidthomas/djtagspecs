@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from djtagspecs import __version__
 from djtagspecs import Tag
 from djtagspecs import TagLibrary
 from djtagspecs import TagSpec
+from djtagspecs import __version__
 from djtagspecs.catalog import TagSpecResolutionError
 from djtagspecs.catalog import load_tag_spec
 from djtagspecs.catalog import merge_tag_specs

@@ -90,7 +90,7 @@ def do_block(parser, token):
                 "'%s' tag with name '%s' appears more than once" % (bits[0], block_name)
             )
         parser.__loaded_blocks.append(block_name)
-    except AttributeError:  
+    except AttributeError:
         parser.__loaded_blocks = [block_name]
     nodelist = parser.parse(("endblock",))
     endblock = parser.next_token()
@@ -142,7 +142,7 @@ The specification favors a declarative contract because attempts to reconstruct 
 
 Keeping the rules in configuration also makes them inherently shareable. Multiple tools can point at the same catalogue, and custom libraries can publish their own definitions without asking downstream tooling to ship code patches. The schema aims to be a neutral interchange format rather than a prescriptive implementation detail.
 
-Choosing static configuration introduces the risk of drifting out of sync with the runtime, but each library can annotate compatibility ranges and quirks with `requires_engine` and `extra`, keeping the core schema simple while leaving room for nuance. 
+Choosing static configuration introduces the risk of drifting out of sync with the runtime, but each library can annotate compatibility ranges and quirks with `requires_engine` and `extra`, keeping the core schema simple while leaving room for nuance.
 
 The same trade-off applies to verbosity: encoding complex tag syntax as structured data takes effort, yet the goal is to make that work pay off in reusable, reliable tooling instead of replacing one opaque system with another.
 
@@ -180,15 +180,15 @@ TagSpecs does not attempt to describe runtime behaviour or side effects, nor doe
 
 ## Serialization Formats
 
-The TagSpecs data model is format-neutral. Implementations MAY serialise documents using any deterministic structured format (for example JSON, TOML, or YAML) as long as the resulting document preserves the required structure defined in this specification. 
+The TagSpecs data model is format-neutral. Implementations MAY serialise documents using any deterministic structured format (for example JSON, TOML, or YAML) as long as the resulting document preserves the required structure defined in this specification.
 
-The JSON Schema published alongside this document serves as an illustrative mapping to JSON and may be adapted to other formats. 
+The JSON Schema published alongside this document serves as an illustrative mapping to JSON and may be adapted to other formats.
 
 Examples in this document use TOML purely for readability; their semantics do not imply a canonical encoding.
 
 ## Versioning
 
-A TagSpec document declares the specification version it implements via the `version` field. The format follows Semantic Versioning. 
+A TagSpec document declares the specification version it implements via the `version` field. The format follows Semantic Versioning.
 
 Prior to `1.0.0`, breaking changes MAY occur in any `0.x` release and consumers SHOULD pin to an exact version. After `1.0.0`, breaking changes will increment the major version, additive changes will increment the minor version, and corrective edits will increment the patch version.
 
@@ -298,9 +298,9 @@ Argument names MUST be unique within each argument list (opening tag, a specific
 
 #### Argument ordering and type
 
-Arguments appear in the order they are written in template syntax. 
+Arguments appear in the order they are written in template syntax.
 
-`TagArg.type` indicates whether an argument may be positional, keyword, or both. 
+`TagArg.type` indicates whether an argument may be positional, keyword, or both.
 
 Engines that follow Python-style semantics (for example Django) SHOULD keep positional arguments before keyword arguments. Consumers MAY rely on this order when interpreting positional arguments.
 
@@ -601,7 +601,7 @@ required = false
 
 A machine-readable JSON Schema for TagSpecs is published alongside this document at `spec/schema.json`. Producers SHOULD validate documents against this schema before distribution. Consumers SHOULD treat the schema as a companion reference but prefer the prose specification when conflicts arise.
 
-A reference implementation of the data model is provided in `src/djtagspecs/models.py` using Pydantic. 
+A reference implementation of the data model is provided in `src/djtagspecs/models.py` using Pydantic.
 
 The canonical runtime consumer lives in the [django-language-server](https://github.com/joshuadavidthomas/django-language-server) project; the models in this repository mirror that implementation and illustrate defaulting behaviour, validation, and normalisation of TagSpec documents.
 
