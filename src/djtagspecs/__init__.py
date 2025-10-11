@@ -11,7 +11,6 @@ from djtagspecs.catalog import load_tag_spec
 from djtagspecs.catalog import merge_tag_specs
 from djtagspecs.catalog import validate_tag_spec
 from djtagspecs.introspect import TemplateTag
-from djtagspecs.introspect import TemplateTags
 from djtagspecs.introspect import get_installed_templatetags
 from djtagspecs.models import EndTag
 from djtagspecs.models import IntermediateTag
@@ -38,7 +37,6 @@ __all__ = [
     "TagSpecLoadError",
     "TagSpecResolutionError",
     "TemplateTag",
-    "TemplateTags",
     "dump_tag_spec",
     "get_installed_templatetags",
     "load_tag_spec",
