@@ -74,8 +74,8 @@ def annotate_with_specs(tags: TemplateTags, catalog_path: Path | str) -> Templat
 
     spec_lookup: set[tuple[str, str]] = set()
     for library in spec.libraries:
-        for tag in library.tags:
-            spec_lookup.add((library.module, tag.name))
+        for spec_tag in library.tags:
+            spec_lookup.add((library.module, spec_tag.name))
 
     annotated_tags = []
     for tag in tags:
