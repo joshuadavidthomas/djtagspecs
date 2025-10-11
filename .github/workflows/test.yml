@@ -47,8 +47,10 @@ jobs:
           enable-cache: true
 
       - name: Run tests
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          uv run nox --session "tests(python='${{ matrix.python-version }}')"
+          uv run nox --session "tests(python='${{ env.PYTHON_VERSION }}')"
 
   tests:
     runs-on: ubuntu-latest
