@@ -35,7 +35,7 @@ license = {file = "LICENSE"}
 name = "djtagspecs"
 readme = "README.md"
 requires-python = ">=3.10"
-version = "0.4.0"
+version = "0.5.0"
 
 [project.scripts]
 djts = "djtagspecs.__main__:app"
@@ -48,7 +48,7 @@ Source = "https://github.com/joshuadavidthomas/djtagspecs"
 [tool.bumpver]
 commit = true
 commit_message = ":bookmark: bump version {old_version} -> {new_version}"
-current_version = "0.4.0"
+current_version = "0.5.0"
 push = true
 tag = false
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
