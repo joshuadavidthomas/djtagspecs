@@ -26,8 +26,9 @@ jobs:
       - name: Upload release assets to GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          gh release upload ${{ github.event.release.tag_name }} dist/*
+          gh release upload ${{ env.TAG_NAME }} dist/*
 
       - name: Publish to PyPI
         run: |
