@@ -486,9 +486,7 @@ type = "standalone"
             TemplateTag("tag1", "django.template.defaulttags", None),
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
         ]
-        printables = format_as_table(
-            tags, catalog=None, group_by=GroupBy.MODULE
-        )
+        printables = format_as_table(tags, catalog=None, group_by=GroupBy.MODULE)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
@@ -499,9 +497,7 @@ type = "standalone"
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
             TemplateTag("tag3", "myapp.templatetags.tags", None),
         ]
-        printables = format_as_table(
-            tags, catalog=None, group_by=GroupBy.PACKAGE
-        )
+        printables = format_as_table(tags, catalog=None, group_by=GroupBy.PACKAGE)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
