@@ -4,6 +4,7 @@ import csv
 import io
 import json
 from collections import defaultdict
+from dataclasses import asdict
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -228,33 +229,19 @@ def apply_filters(
     ]
 
 
-def format_as_json(tags: TemplateTags, group_by: GroupBy = GroupBy.MODULE) -> str:
+def format_as_json(
+    tags: TemplateTags, group_by: GroupBy = GroupBy.MODULE, indent: int = 2
+) -> str:
     if group_by == GroupBy.MODULE:
-        data = [
-            {
-                "name": t.name,
-                "module": t.module,
-                "library": t.library,
-                "has_spec": t.has_spec,
-            }
-            for t in tags
-        ]
-    else:
-        grouped: dict[str, list[dict[str, Any]]] = {}
-        for t in tags:
-            package = t.module.split(".")[0]
-            if package not in grouped:
-                grouped[package] = []
-            grouped[package].append(
-                {
-                    "name": t.name,
-                    "module": t.module,
-                    "library": t.library,
-                    "has_spec": t.has_spec,
-                }
-            )
-        data = grouped
-    return json.dumps(data, indent=2)
+        return json.dumps([asdict(t) for t in tags], indent=indent)
+
+    data: dict[str, list[dict[str, Any]]] = {}
+    for t in tags:
+        package = t.module.split(".")[0]
+        if package not in data:
+            data[package] = []
+        data[package].append(asdict(t))
+    return json.dumps(data, indent=indent)
 
 
 def format_as_csv(tags: TemplateTags, group_by: GroupBy = GroupBy.MODULE) -> str:
