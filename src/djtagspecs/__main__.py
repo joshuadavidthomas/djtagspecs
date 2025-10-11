@@ -39,23 +39,6 @@ def cli() -> None:
     """Command-line interface for Django TagSpecs."""
 
 
-class OutputFormat(str, Enum):
-    TABLE = "table"
-    JSON = "json"
-    CSV = "csv"
-
-
-class SpecStatus(str, Enum):
-    ALL = "all"
-    MISSING = "missing"
-    DOCUMENTED = "documented"
-
-
-class GroupBy(str, Enum):
-    MODULE = "module"
-    PACKAGE = "package"
-
-
 class GenerateTagSpecJsonSchema(GenerateJsonSchema):
     @override
     def generate(self, schema: CoreSchema, mode: JsonSchemaMode = "validation"):
@@ -176,6 +159,23 @@ def flatten(
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(payload, encoding="utf-8")
         typer.secho(f"Wrote flattened document to {output}", fg=typer.colors.GREEN)
+
+
+class OutputFormat(str, Enum):
+    TABLE = "table"
+    JSON = "json"
+    CSV = "csv"
+
+
+class SpecStatus(str, Enum):
+    ALL = "all"
+    MISSING = "missing"
+    DOCUMENTED = "documented"
+
+
+class GroupBy(str, Enum):
+    MODULE = "module"
+    PACKAGE = "package"
 
 
 @dataclass
