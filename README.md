@@ -192,7 +192,7 @@ Let’s pretend you’ve written a custom `card` block tag that takes a required
 Here’s how the TagSpec captures that custom tag:
 
 ```toml
-version = "0.1.0"
+version = "0.4.0"
 engine = "django"
 
 [[libraries]]

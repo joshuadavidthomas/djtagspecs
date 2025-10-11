@@ -1,7 +1,7 @@
 # TagSpecs
 
 <dl>
-    <dt>Version:</dt><dd><code>0.3.0</code></dd>
+    <dt>Version:</dt><dd><code>0.4.0</code></dd>
     <dt>Author:</dt><dd>Josh Thomas</dd>
     <dt>Status:</dt><dd>Draft / Pre-1.0</dd>
     <dt>Created:</dt><dd>2025-09-20</dd>
@@ -63,7 +63,72 @@ Django’s template engine intentionally keeps tag semantics flexible: the core 
 
 That variability makes heuristics brittle at best. Reverse-engineering the intent of even Django’s built-in tags requires bespoke knowledge of each implementation. TagSpecs introduce an explicit, machine-readable contract so tools can recover the structural and semantic information that runtime code currently hides without guesswork.
 
-The format was born out of building the [django-language-server](https://github.com/joshuadavidthomas/django-language-server). The goal was to surface template diagnostics statically, without importing user code or executing the Django runtime. Template tags commonly signal misuse by raising `TemplateSyntaxError`, `VariableDoesNotExist`, or other exceptions during rendering—far too late for editor tooling. 
+Consider Django’s built-in `{% block %}` tag. Both of these forms are valid:
+
+```django
+{% block content %}
+    ...
+{% endblock %}
+
+{% block content %}
+    ...
+{% endblock content %}
+```
+
+At a glance this looks trivial and in isolation you could hard-code its parsing rules. But that approach collapses once you account for the rest of Django’s built-ins, let alone the endless third-party or user-defined tags. Even the supposedly simple case of the `block` tag hides engine-specific logic: the moment you step outside Django’s parser you have to reimplement it just to spot a missing `endblock` argument. Inside Django that work lives in `django.template.loader_tags`, which manually splits tokens, tracks previously seen block names, and negotiates the optional name on the closing tag inside `do_block`:
+
+```python
+@register.tag("block")
+def do_block(parser, token):
+    bits = token.contents.split()
+    if len(bits) != 2:
+        raise TemplateSyntaxError("'%s' tag takes only one argument" % bits[0])
+    block_name = bits[1]
+    try:
+        if block_name in parser.__loaded_blocks:
+            raise TemplateSyntaxError(
+                "'%s' tag with name '%s' appears more than once" % (bits[0], block_name)
+            )
+        parser.__loaded_blocks.append(block_name)
+    except AttributeError:  
+        parser.__loaded_blocks = [block_name]
+    nodelist = parser.parse(("endblock",))
+    endblock = parser.next_token()
+    acceptable_endblocks = ("endblock", "endblock %s" % block_name)
+    if endblock.contents not in acceptable_endblocks:
+        parser.invalid_block_tag(endblock, "endblock", acceptable_endblocks)
+    return BlockNode(block_name, nodelist)
+```
+
+`block` is actually one of the simpler built-ins; other tags layer on positional shorthands, optional intermediates, or bespoke validation spread across multiple helpers. From a static tooling perspective, reconstructing those rules means importing Django, executing parser logic, and sidestepping context-sensitive behaviour. A TagSpec captures the same contract declaratively:
+
+```toml
+[[libraries]]
+module = "django.template.loader_tags"
+
+[[libraries.tags]]
+name = "block"
+type = "block"
+
+[[libraries.tags.args]]
+name = "name"
+kind = "literal"
+
+[libraries.tags.end]
+name = "endblock"
+
+[[libraries.tags.end.args]]
+name = "name"
+kind = "literal"
+required = false
+extra = { matches = { part = "tag", argument = "name" } }
+```
+
+With that document in hand, a validator can confirm the lone opening argument, synthesise `endblock` when the closing tag is omitted, and enforce the optional name match—all without touching runtime internals.
+
+Could a tool just import Django and reuse the `do_block` parser? Technically yes, but the runtime API is geared entirely toward rendering: it mutates parser state, instantiates `BlockNode` objects, and enforces syntax by throwing `TemplateSyntaxError` (and related runtime exceptions such as `VariableDoesNotExist`) as side effects while compiling the template. Static tooling would need to execute Django’s parser, evaluate user-defined tag modules, and reverse-engineer details from AST objects that were never designed to expose them.
+
+Those limitations surfaced while building [django-language-server](https://github.com/joshuadavidthomas/django-language-server). Without a declarative contract to lean on, the project had to choose between running the entire parser or leaving authors blind to those errors. TagSpecs provide the missing middle ground: capture the rules once, share them across projects, surface diagnostics before the template ever hits the engine, and let any editor, linter, or CI pipeline consume that knowledge without firing up Django at all.
 
 Publishing the specification separately ensures the format is not tied solely to that project: other editors, linters, documentation workflows, or bespoke tools can reuse it, and broader community feedback can evolve the vocabulary over time. The hope is that a shared schema makes it easier for others to build their own analysis tooling without reinventing this foundation.
 
@@ -136,8 +201,11 @@ The root document captures catalog-wide metadata and the set of tag libraries it
 - `version` — optional string identifying the TagSpecs specification version implemented by this document (for example `"0.1.0"`). When omitted, consumers MUST assume the latest published specification version and MAY reject documents that advertise a version they do not understand.
 - `engine` — optional string identifier for the template dialect (for example `"django"`, `"jinja2"`). When omitted, consumers MUST treat the engine as `"django"`. This edition of the specification defines behaviour only for the Django dialect; non-Django engines SHOULD supply additional documentation clarifying any divergent semantics.
 - `requires_engine` — optional string constraining engine versions for the entire catalog (PEP 440 for Django). When omitted, the catalog is assumed to work with all versions recognised by the declared engine. Any child object that omits its own `requires_engine` inherits this value.
-- `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon. Entries are processed in order before applying the current document.
-- `libraries` — required array of TagLibrary objects. The array itself may be empty, but library modules MUST be unique within a document.
+- `extends` — optional array of string references to additional TagSpec documents that this catalog builds upon.
+    - Entries are processed left to right before applying the current document.
+    - Each entry MAY reference a relative or absolute file path, directory, glob pattern, or URI (for example `pkg://`).
+    - Directory and glob handling follow the rules in [Discovery and Composition](#discovery-and-composition), including lexicographic expansion and implementation-defined filename support.
+- `libraries` — array of TagLibrary objects. Producers SHOULD include the member even when no libraries are declared. Consumers MUST normalise a missing value to an empty array, and library modules MUST remain unique within a document.
 - `extra` — optional object for catalog-level metadata not otherwise covered by this specification (for example documentation URLs, provenance, or tool-specific flags).
 
 Unrecognised top-level members MAY appear. Consumers SHOULD ignore them while preserving their structure when re-serialising the document.
@@ -157,31 +225,29 @@ Each entry in `libraries.tags` describes a single template tag exposed by the en
 
 - `name` — the canonical name of the tag as used in templates.
 - `type` — enumerated string describing the structural category of the tag: `"block"`, `"loader"`, or `"standalone"`. This maps to `TagType`.
-- `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array.
-- `intermediates` — array of `IntermediateTag` objects describing markers admitted within the tag body. Only meaningful when the tag behaves as a block (for example `type = "block"` or `type = "loader"` with block support). Defaults to an empty array.
+- `args` — array of `TagArg` objects describing the arguments accepted by the opening tag. The order of the array reflects syntactic order. Defaults to an empty array. When omitted or empty, consumers MUST treat the argument list as permissive: they MUST NOT report missing required arguments or extra supplied arguments at call sites.
+- `intermediates` — array of `IntermediateTag` objects describing markers admitted within the tag body. Only meaningful when the tag behaves as a block (for example `type = "block"` or `type = "loader"` with block support). Defaults to an empty array. When omitted or empty, consumers MUST assume no intermediate markers are required.
 - `end` — optional `EndTag` object describing the closing tag of a block.
     - `standalone` tags MUST NOT provide `end`.
     - `block` tags MAY omit `end`. If omitted, consumers MUST synthesise the defaults described in [End Tag Defaults](#end-tag-defaults) when absent.
-    - `loader` tags MAY define `end` when the tag implementation supports block syntax and MAY rely on the same defaults when omitted.
+    - `loader` tags without `end` behave as single-node tags. When they supply `end`, they follow the same defaults as block tags.
 - `extra` — optional object reserved for implementation-specific metadata (for example documentation handles or analysis hints). Consumers MUST ignore unknown members inside `extra`.
 
 ### Tag Types
 
 #### Block Tag
 
-`block` tags enclose a region of the template and optionally admit intermediate markers. Template usage always terminates with a matching end tag; when the spec omits `end`, consumers MUST apply the defaults in [End Tag Defaults](#end-tag-defaults). Examples include `if`, `for`, and `with`.
+`block` tags enclose a region of the template and optionally admit intermediate markers. They remain valid when the spec omits `end`; consumers MUST synthesise the defaults in [End Tag Defaults](#end-tag-defaults) and accept the tag in minimal form. Examples include `if`, `for`, and `with`.
 
 #### Loader Tag
 
-`loader` tags execute at runtime to load additional templates or components. 
+`loader` tags execute at runtime to load additional templates or components.
 
-They may behave like standalone tags (for example `include`) or like block tags when the implementation accepts block syntax (for example third-party component tags that wrap an external template). 
-
-Loader tags MAY provide `intermediates` and `end` when the runtime implementation recognises them.
+They default to single-node behaviour when the spec omits `end` (for example `include`). When the runtime implementation accepts block syntax, the spec MAY provide `end` and `intermediates`, at which point they behave identically to `block` tags for validation purposes (for example third-party component tags that wrap an external template).
 
 #### Standalone Tag
 
-`standalone` tags occupy a single template node and have no matching end tag. Examples include `csrf_token`, `now`, and `url`.
+`standalone` tags occupy a single template node and have no matching end tag. They MUST NOT specify `end` or `intermediates`. Examples include `csrf_token`, `now`, and `url`.
 
 ### End Tags
 
@@ -200,7 +266,7 @@ For `type = "block"` tags:
     - `args = []`
     - `required = true`
 
-An explicitly provided `end` object overrides these defaults. Block-capable `loader` tags MAY adopt the same behaviour. Standalone tags MUST NOT supply `end`.
+An explicitly provided `end` object overrides these defaults. Loader tags adopt the same behaviour once they declare `end`; when they omit it, they remain single-node tags. Standalone tags MUST NOT supply `end`.
 
 ### Intermediate Tags
 
@@ -268,12 +334,13 @@ When the predefined hint enums are insufficient, producers MAY convey richer sem
 
 ### Defaults and Normalization
 
-Consumers MUST interpret omitted members according to these defaults, regardless of the document’s serialization format:
+Consumers MUST interpret omitted members according to these defaults, regardless of the document’s serialization format. Unless a default below states otherwise, omission MUST be treated as permissive and MUST NOT introduce validation failures:
 
 - `version` defaults to the latest published specification (`"0.1.0"`).
 - `engine` defaults to `"django"`.
 - `extends` defaults to an empty array.
-- `tag.args`, `end.args`, and `intermediate.args` default to empty arrays; `intermediates` defaults to an empty array.
+- `libraries` defaults to an empty array.
+- `tag.args`, `end.args`, and `intermediate.args` default to empty arrays, signalling that no argument presence or arity checks are enforced until definitions appear. `intermediates` defaults to an empty array, signalling that no intermediate markers are required.
 - `end.required` defaults to `true`.
 - `block` tags without an explicit `end` are normalised using the defaults in [End Tag Defaults](#end-tag-defaults).
 - `arg.required` defaults to `true`; `arg.type` defaults to `"both"`.
@@ -281,9 +348,62 @@ Consumers MUST interpret omitted members according to these defaults, regardless
 
 When producing a serialized form, implementations MAY omit members whose values equal the defaults above.
 
+### Progressive Enhancement
+
+TagSpecs are intended to be adopted incrementally. Authors MAY publish the minimal viable document—a catalog header with empty `libraries`, or a tag definition that only states `name` and `type`. Consumers MUST accept these documents, applying the defaults above so that the resulting spec remains permissive. Additional structure (arguments, intermediates, explicit end tags, metadata) MAY be layered on later via overlays or revised catalogs without breaking existing consumers. Tools SHOULD merge such additions using the identity rules defined below and SHOULD continue honouring permissive defaults where detail is absent.
+
 ### Identity and Ordering
 
-Tag identity within a document is defined by the tuple `{engine, library.module, tag.name}`. Documents that overlay one another MUST use this composite key when merging tags. Arrays preserve authoring order. Consumers MUST NOT reorder `libraries`, `tags`, `args`, or `intermediates` unless explicitly directed by the specification.
+Overlay evaluation order is deterministic. Consumers apply documents in the sequence resolved by `extends[0]`, `extends[1]`, … `extends[n]`, with the current document evaluated last.
+
+Library identity is defined by `{engine, library.module}`. Tag identity within a document is defined by the tuple `{engine, library.module, tag.name}`. Documents that overlay one another MUST use these composite keys when merging.
+
+When two documents contribute the same object:
+
+- Scalar fields adopt the last non-null value encountered in overlay order.
+- Object fields—including any `extra` member—merge shallowly, with later documents winning on key collision.
+- Arrays of named items (`args`, `intermediates`, and `end.args`) merge by `name`. Later documents replace existing entries with the same `name`; unique names append in the order they appear.
+- All other arrays (for example `libraries` and `tags`) append new items in document order while preserving the original ordering of earlier items. Consumers MUST NOT reorder array members unless explicitly directed by this specification.
+
+#### Example overlay
+
+Given a base catalog that exports a minimal `hero` block tag:
+
+```toml
+# catalogs/base.toml
+version = "0.4.0"
+
+[[libraries]]
+module = "myapp.templatetags.hero"
+
+[[libraries.tags]]
+name = "hero"
+type = "block"
+```
+
+And an overlay that extends it to spell out arguments and intermediates while reusing the structural defaults from the base document:
+
+```toml
+# catalogs/hero-overlay.toml
+extends = ["catalogs/base.toml"]
+
+[[libraries]]
+module = "myapp.templatetags.hero"
+
+[[libraries.tags]]
+name = "hero"
+
+[[libraries.tags.args]]
+name = "title"
+kind = "literal"
+required = true
+
+[[libraries.tags.intermediates]]
+name = "else"
+position = "last"
+```
+
+Loading `catalogs/hero-overlay.toml` first applies the base document, then the overlay. Because both files contribute the same tag identity `{engine="django", module="myapp.templatetags.hero", name="hero"}`, the overlay augments the minimal definition: `hero` remains a block tag, gains the required `title` argument, and receives the `else` intermediate. No other tags are affected, and the base file stays valid for consumers that do not load the overlay.
 
 ### Validation
 
@@ -302,12 +422,15 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 
 Consumers SHOULD surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
 
+Progressive defaults mean that missing definitions are not themselves violations. In particular, consumers MUST NOT report diagnostics about argument presence or intermediate usage until the corresponding definitions exist in the spec.
+
 ### Extensibility and Forward Compatibility
 
 TagSpecs are designed for forward compatibility:
 
 - Unknown object members at any level MUST be preserved during round-tripping.
 - Producers MAY introduce vendor-specific metadata on any object. Using the provided `extra` member is RECOMMENDED to minimise clashes, but consumers MUST tolerate additional fields even when they appear elsewhere.
+- Any object MAY record provenance using `extra.source` (string path or URI). Consumers MUST preserve this value during round-tripping.
 - New `TagArg.kind` values may be introduced in future revisions. Consumers MUST ignore kinds they do not recognise while retaining them.
 - Additional metadata keys or values under `extra.*` (including new `hint`, `affects`, or `choices` vocabularies) may appear at any time. Consumers MUST preserve unknown keys and values for round-tripping.
 - Additional top-level fields may appear in future versions and MUST NOT cause validation failures.
@@ -321,13 +444,17 @@ Productions may combine multiple TagSpec documents. Consumers SHOULD apply the f
 3. Default manifests at the project root when no explicit selection is provided. Implementations SHOULD look for `djtagspecs.toml` and `.djtagspecs.toml`, but MAY recognise additional filenames or extensions consistent with the serialization formats they support.
 4. Installed catalogs packaged with libraries.
 
-When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file. Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.
+When the `extends` array is present, consumers MUST resolve each entry in order before applying the current document. Paths are resolved relative to the current document unless the entry uses an implementation-defined URI scheme (for example `pkg://`). For inline configurations located in `pyproject.toml`, the current document is the directory containing that file.
+
+Directory and glob entries MUST expand to the matching, non-recursive set of manifest files supported by the implementation, sorted lexicographically before being appended to the overlay chain. Implementations SHOULD document which patterns they recognise and SHOULD, at minimum, accept common TagSpec serialisations such as `.toml`, `.json`, `.yaml`, or `.yml`.
+
+Overlay documents SHOULD merge fields by the identity rules in [Identity and Ordering](#identity-and-ordering), with later documents overriding earlier values on key collision.
 
 An inline configuration uses the same structure as standalone files. For example:
 
 ```toml
 [tool.djtagspecs]
-version = "0.1.0"
+version = "0.4.0"
 engine = "django"
 
 [[tool.djtagspecs.libraries]]
@@ -351,119 +478,62 @@ A conforming implementation is RECOMMENDED to document which levels it satisfies
 
 ## Examples
 
-### Block Tag
+The examples below highlight the minimal declaration for each tag type and show how additional structure can be layered on without breaking early adopters.
 
-#### `block`
+### Minimal Block Tag
 
-Here the TagSpec captures the required block name and the optional matching argument on `endblock` enforced via `extra.matches`.
-
-```django
-{% block sidebar %}
-    <p>Sidebar content</p>
-{% endblock sidebar %}
-```
+A block tag can be published with only its name and type. Consumers will synthesise `end<name>` (`endif` in this case) and will not enforce any argument or intermediate structure until it is declared.
 
 ```toml
-version = "0.1.0"
+version = "0.4.0"
 engine = "django"
 
 [[libraries]]
 module = "django.template.defaulttags"
 
 [[libraries.tags]]
-name = "block"
+name = "if"
 type = "block"
-
-[[libraries.tags.args]]
-name = "name"
-kind = "literal"
-required = true
-
-[libraries.tags.end]
-name = "endblock"
-
-[[libraries.tags.end.args]]
-name = "name"
-kind = "literal"
-required = false
-extra = { matches = { part = "tag", argument = "name" } }
 ```
 
-#### `for`
-
-The TagSpec for `for` records the opening arguments and the optional `empty` intermediate constrained to appear last at most once.
-
-```django
-{% for item in items %}
-    {{ item }}
-{% empty %}
-    <p>No items available.</p>
-{% endfor %}
-```
+An overlay can later introduce arguments or intermediates without disrupting existing tooling:
 
 ```toml
-version = "0.1.0"
-engine = "django"
-
 [[libraries]]
 module = "django.template.defaulttags"
 
 [[libraries.tags]]
-name = "for"
+name = "if"
 type = "block"
-
-[libraries.tags.end]
-name = "endfor"
-required = true
 
 [[libraries.tags.intermediates]]
-name = "empty"
-min = 0
-max = 1
+name = "else"
 position = "last"
 
 [[libraries.tags.args]]
-name = "loop_vars"
+name = "condition"
 kind = "any"
-required = true
-
-[[libraries.tags.args]]
-name = "in"
-kind = "syntax"
-required = true
-
-[[libraries.tags.args]]
-name = "iterable"
-kind = "variable"
-required = true
-
-[[libraries.tags.args]]
-name = "as"
-kind = "syntax"
-required = false
-
-[[libraries.tags.args]]
-name = "context_var"
-kind = "assignment"
-required = false
-extra = { hint = "context_extension" }
 ```
 
-### Loader Tag
+### Minimal Loader Tag
 
-#### `include`
-
-The TagSpec for `include` documents optional `with` bindings and the `only` modifier that limits context leakage.
-
-```django
-{% include "partials/card.html" with product=product only %}
-{% include "partials/card.html" with product=product highlight=True %}
-```
+Loader tags default to single-node behaviour when they omit `end`. This minimal spec accepts any argument list until details are supplied.
 
 ```toml
-version = "0.1.0"
+version = "0.4.0"
 engine = "django"
 
+[[libraries]]
+module = "django.template.loader_tags"
+
+[[libraries.tags]]
+name = "include"
+type = "loader"
+```
+
+To progressively tighten validation without introducing a closing tag, later revisions may add argument definitions while keeping the tag single-node:
+
+```toml
 [[libraries]]
 module = "django.template.loader_tags"
 
@@ -474,8 +544,6 @@ type = "loader"
 [[libraries.tags.args]]
 name = "template"
 kind = "literal"
-required = true
-extra = { hint = "template_path" }
 
 [[libraries.tags.args]]
 name = "with"
@@ -486,32 +554,32 @@ required = false
 name = "bindings"
 kind = "assignment"
 required = false
-extra = { hint = "parameter_passing" }
 
 [[libraries.tags.args]]
 name = "only"
 kind = "modifier"
 required = false
-extra = { affects = "context" }
 ```
 
-### Standalone Tag
+### Minimal Standalone Tag
 
-#### `url`
-
-In this TagSpec, positional arguments cover the view name and parameters, and the optional `as` assignment captures the generated URL.
-
-```django
-<a href="{% url 'account:detail' user.pk %}">View account</a>
-
-{% url 'blog:index' as index_url %}
-<a href="{{ index_url }}">Blog</a>
-```
+Standalone tags must remain single-node and therefore omit `end` and `intermediates`. With no argument definitions, tooling accepts any argument list until authors provide stricter guidance.
 
 ```toml
-version = "0.1.0"
+version = "0.4.0"
 engine = "django"
 
+[[libraries]]
+module = "django.template.defaulttags"
+
+[[libraries.tags]]
+name = "url"
+type = "standalone"
+```
+
+Additional argument structure can be introduced progressively—for example, to describe the required view name and optional assignments:
+
+```toml
 [[libraries]]
 module = "django.template.defaulttags"
 
@@ -522,24 +590,11 @@ type = "standalone"
 [[libraries.tags.args]]
 name = "pattern"
 kind = "literal"
-required = true
-extra = { hint = "url_name" }
-
-[[libraries.tags.args]]
-name = "args"
-kind = "variable"
-required = false
 
 [[libraries.tags.args]]
 name = "as"
 kind = "syntax"
 required = false
-
-[[libraries.tags.args]]
-name = "context_var"
-kind = "assignment"
-required = false
-extra = { hint = "variable_capture" }
 ```
 
 ## Reference Schema and Implementation

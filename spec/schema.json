@@ -3,6 +3,7 @@
     "EndTag": {
       "properties": {
         "args": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/TagArg"
           },
@@ -41,6 +42,7 @@
     "IntermediateTag": {
       "properties": {
         "args": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/TagArg"
           },
@@ -109,6 +111,7 @@
     "Tag": {
       "properties": {
         "args": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/TagArg"
           },
@@ -140,6 +143,7 @@
           "title": "Extra"
         },
         "intermediates": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/IntermediateTag"
           },
@@ -254,6 +258,7 @@
           "title": "Requires Engine"
         },
         "tags": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/Tag"
           },
@@ -262,8 +267,7 @@
         }
       },
       "required": [
-        "module",
-        "tags"
+        "module"
       ],
       "title": "TagLibrary",
       "type": "object"
@@ -297,6 +301,7 @@
       "title": "Extra"
     },
     "libraries": {
+      "default": [],
       "items": {
         "$ref": "#/$defs/TagLibrary"
       },
@@ -320,9 +325,6 @@
       "type": "string"
     }
   },
-  "required": [
-    "libraries"
-  ],
   "title": "TagSpec",
   "type": "object"
 }
