@@ -16,7 +16,7 @@ from djtagspecs.__main__ import apply_filters
 from djtagspecs.__main__ import calculate_coverage_stats
 from djtagspecs.__main__ import format_as_csv
 from djtagspecs.__main__ import format_as_json
-from djtagspecs.__main__ import format_as_table
+from djtagspecs.__main__ import format_as_printables
 from djtagspecs.introspect import TemplateTag
 
 
@@ -370,7 +370,7 @@ class TestFormatAsTable:
             TemplateTag("for", "django.template.defaulttags", None),
             TemplateTag("if", "django.template.defaulttags", None),
         ]
-        printables = format_as_table(tags, catalog=None)
+        printables = format_as_printables(tags, catalog=None)
 
         assert isinstance(printables, list)
         assert len(printables) == 1
@@ -380,7 +380,7 @@ class TestFormatAsTable:
         tags = [
             TemplateTag("for", "django.template.defaulttags", None),
         ]
-        printables = format_as_table(tags, catalog=None)
+        printables = format_as_printables(tags, catalog=None)
 
         table = printables[0]
         assert isinstance(table, Table)
@@ -404,7 +404,7 @@ type = "standalone"
             TemplateTag("for", "django.template.defaulttags", None, has_spec=True),
             TemplateTag("if", "django.template.defaulttags", None, has_spec=False),
         ]
-        printables = format_as_table(tags, catalog=catalog)
+        printables = format_as_printables(tags, catalog=catalog)
 
         assert isinstance(printables, list)
         assert len(printables) == 3
@@ -429,7 +429,7 @@ type = "standalone"
         tags = [
             TemplateTag("for", "django.template.defaulttags", None, has_spec=True),
         ]
-        printables = format_as_table(tags, catalog=catalog)
+        printables = format_as_printables(tags, catalog=catalog)
 
         table = printables[0]
         assert isinstance(table, Table)
@@ -441,7 +441,7 @@ type = "standalone"
             TemplateTag("for", "django.template.defaulttags", None),
             TemplateTag("custom", "myapp.tags", None),
         ]
-        printables = format_as_table(tags, catalog=None)
+        printables = format_as_printables(tags, catalog=None)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
@@ -452,7 +452,7 @@ type = "standalone"
             TemplateTag("apple", "module.a", None),
             TemplateTag("banana", "module.a", None),
         ]
-        printables = format_as_table(tags, catalog=None)
+        printables = format_as_printables(tags, catalog=None)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
@@ -461,7 +461,7 @@ type = "standalone"
         tags_no_library = [
             TemplateTag("for", "django.template.defaulttags", None),
         ]
-        printables_no_lib = format_as_table(tags_no_library, catalog=None)
+        printables_no_lib = format_as_printables(tags_no_library, catalog=None)
         table_no_lib = printables_no_lib[0]
         assert isinstance(table_no_lib, Table)
         columns_no_lib = [col.header for col in table_no_lib.columns]
@@ -470,14 +470,14 @@ type = "standalone"
         tags_with_library = [
             TemplateTag("static", "django.templatetags.static", "static"),
         ]
-        printables_with_lib = format_as_table(tags_with_library, catalog=None)
+        printables_with_lib = format_as_printables(tags_with_library, catalog=None)
         table_with_lib = printables_with_lib[0]
         assert isinstance(table_with_lib, Table)
         columns_with_lib = [col.header for col in table_with_lib.columns]
         assert "Library" in columns_with_lib
 
     def test_empty_list(self):
-        printables = format_as_table([], catalog=None)
+        printables = format_as_printables([], catalog=None)
 
         assert printables == []
 
@@ -486,7 +486,7 @@ type = "standalone"
             TemplateTag("tag1", "django.template.defaulttags", None),
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
         ]
-        printables = format_as_table(tags, catalog=None, group_by=GroupBy.MODULE)
+        printables = format_as_printables(tags, catalog=None, group_by=GroupBy.MODULE)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
@@ -497,7 +497,7 @@ type = "standalone"
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
             TemplateTag("tag3", "myapp.templatetags.tags", None),
         ]
-        printables = format_as_table(tags, catalog=None, group_by=GroupBy.PACKAGE)
+        printables = format_as_printables(tags, catalog=None, group_by=GroupBy.PACKAGE)
 
         tables = [p for p in printables if isinstance(p, Table)]
         assert len(tables) == 2
