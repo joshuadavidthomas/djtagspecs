@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import io
 import json
-from pathlib import Path
 
 import pytest
 from rich.table import Table
@@ -218,7 +217,9 @@ class TestFormatAsJson:
 
     def test_includes_all_fields(self):
         tags = [
-            TemplateTag("static", "django.templatetags.static", "static", has_spec=False),
+            TemplateTag(
+                "static", "django.templatetags.static", "static", has_spec=False
+            ),
         ]
         output = format_as_json(tags)
         data = json.loads(output)
@@ -318,7 +319,7 @@ class TestFormatAsCsv:
 
     def test_special_characters_escaped(self):
         tags = [
-            TemplateTag('tag,with,commas', "module.a", "lib,with,commas"),
+            TemplateTag("tag,with,commas", "module.a", "lib,with,commas"),
         ]
 
         csv_content = format_as_csv(tags)
@@ -480,7 +481,9 @@ type = "standalone"
             TemplateTag("tag1", "django.template.defaulttags", None),
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=None, group_by=GroupBy.MODULE)
+        module_tables, _, _ = format_as_table(
+            tags, catalog=None, group_by=GroupBy.MODULE
+        )
 
         assert len(module_tables) == 2
 
@@ -490,7 +493,9 @@ type = "standalone"
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
             TemplateTag("tag3", "myapp.templatetags.tags", None),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=None, group_by=GroupBy.PACKAGE)
+        module_tables, _, _ = format_as_table(
+            tags, catalog=None, group_by=GroupBy.PACKAGE
+        )
 
         assert len(module_tables) == 2
 
@@ -570,9 +575,7 @@ class TestListTagsCommand:
 
     def test_status_requires_catalog(self):
         runner = CliRunner()
-        result = runner.invoke(
-            app, ["list-tags", "--status", "documented"]
-        )
+        result = runner.invoke(app, ["list-tags", "--status", "documented"])
         assert result.exit_code == 1
         assert "requires --catalog" in result.stderr
 

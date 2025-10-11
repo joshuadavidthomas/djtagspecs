@@ -4,17 +4,17 @@ A specification for describing Django template tag syntax.
 
 ## Overview
 
-TagSpec is a machine-readable format for describing Django template tag syntax. 
+TagSpec is a machine-readable format for describing Django template tag syntax.
 
 If you're familiar with OpenAPI for REST APIs, the TagSpec specification plays a comparable role for Django templates: it captures the structure of tags so tools can reason about them without importing Django or executing any code.
 
-The format is designed to live alongside Django rather than inside it. It documents tag syntax, structure, and semantics so tooling can perform static analysis without involving the Django runtime. 
+The format is designed to live alongside Django rather than inside it. It documents tag syntax, structure, and semantics so tooling can perform static analysis without involving the Django runtime.
 
 TagSpecs are intended to complement Django and are primarily for the people building tooling around the template system, e.g., language servers, linters, documentation generators, and similar projects.
 
 ### So, What Is It?
 
-OK, ok... I know that still doesn't really answer the “what is it?” question. 
+OK, ok... I know that still doesn't really answer the “what is it?” question.
 
 In basic terms, TagSpecs are a specification format for describing Django template tags, a shareable catalog you can publish alongside your tag library, and a set of reference models that help tools validate those documents. It is external to Django, aimed at people building template-aware tooling.
 
