@@ -249,24 +249,24 @@ def format_as_csv(tags: TemplateTags, group_by: GroupBy = GroupBy.MODULE) -> str
     writer = csv.writer(output)
 
     headers = ["name", "module", "library", "has_spec"]
-    if group_by == GroupBy.MODULE:
+    if group_by == GroupBy.PACKAGE:
         headers.insert(0, "package")
     writer.writerow(headers)
 
     for tag in tags:
         row = [tag.name, tag.module, tag.library or "", tag.has_spec or ""]
-        if group_by == GroupBy.MODULE:
+        if group_by == GroupBy.PACKAGE:
             row.insert(0, tag.module.split(".")[0])
         writer.writerow(row)
 
     return output.getvalue()
 
 
-def format_as_table(
+def format_as_printables(
     tags: TemplateTags,
     catalog: Path | None,
     group_by: GroupBy = GroupBy.MODULE,
-) -> tuple[list[Table], CoverageStats | None, Table | None]:
+) -> list[Table | str]:
     grouped: dict[str, TemplateTags] = defaultdict(list)
     for tag in sorted(tags, key=lambda t: (t.module, t.name)):
         key = tag.module if group_by == GroupBy.MODULE else tag.module.split(".")[0]
@@ -277,7 +277,8 @@ def format_as_table(
     if catalog:
         overall, by_module = calculate_coverage_stats(tags)
 
-    module_tables: list[Table] = []
+    printables: list[Table | str] = []
+
     for mod in sorted(grouped.keys()):
         mod_tags = grouped[mod]
 
@@ -319,10 +320,13 @@ def format_as_table(
 
             table.add_row(*row)
 
-        module_tables.append(table)
+        printables.append(table)
 
-    summary_table: Table | None = None
-    if catalog and by_module:
+    if catalog and by_module and overall:
+        printables.append(
+            f"\n[bold]Overall Coverage:[/bold] {overall.documented}/{overall.total} tags ({overall.percentage:.1f}%)"
+        )
+
         summary_table = Table(
             title="[bold]Coverage by Module[/bold]",
             show_header=True,
@@ -347,7 +351,9 @@ def format_as_table(
                 f"[{pct_style}]{mod_stats.percentage:.1f}%[/{pct_style}]",
             )
 
-    return module_tables, overall, summary_table
+        printables.append(summary_table)
+
+    return printables
 
 
 @app.command(
@@ -405,6 +411,14 @@ def list_tags(
         ),
     ] = GroupBy.MODULE,
 ) -> None:
+    if status != SpecStatus.ALL and not catalog:
+        typer.secho(
+            "Error: --status missing/documented requires --catalog to be specified.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     tags = get_installed_templatetags()
 
     if catalog:
@@ -413,14 +427,6 @@ def list_tags(
         except TagSpecError as exc:
             typer.secho(f"Error loading catalog: {exc}", fg=typer.colors.RED, err=True)
             raise typer.Exit(code=1) from exc
-
-    if status != SpecStatus.ALL and not catalog:
-        typer.secho(
-            "Error: --status missing/documented requires --catalog to be specified.",
-            fg=typer.colors.RED,
-            err=True,
-        )
-        raise typer.Exit(code=1)
 
     tags = apply_filters(
         tags,
@@ -440,18 +446,11 @@ def list_tags(
         typer.echo(format_as_csv(tags, group_by), nl=False)
     else:
         console = Console()
-        module_tables, overall, summary_table = format_as_table(tags, catalog, group_by)
+        printables = format_as_printables(tags, catalog, group_by)
 
-        for table in module_tables:
+        for item in printables:
             console.print()
-            console.print(table)
-
-        if overall and summary_table:
-            console.print(
-                f"\n[bold]Overall Coverage:[/bold] {overall.documented}/{overall.total} tags ({overall.percentage:.1f}%)"
-            )
-            console.print()
-            console.print(summary_table)
+            console.print(item)
 
 
 if __name__ == "__main__":

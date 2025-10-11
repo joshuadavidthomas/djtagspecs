@@ -370,21 +370,20 @@ class TestFormatAsTable:
             TemplateTag("for", "django.template.defaulttags", None),
             TemplateTag("if", "django.template.defaulttags", None),
         ]
-        module_tables, overall, summary = format_as_table(tags, catalog=None)
+        printables = format_as_table(tags, catalog=None)
 
-        assert isinstance(module_tables, list)
-        assert len(module_tables) == 1
-        assert isinstance(module_tables[0], Table)
-        assert overall is None
-        assert summary is None
+        assert isinstance(printables, list)
+        assert len(printables) == 1
+        assert isinstance(printables[0], Table)
 
     def test_without_catalog_no_spec_column(self):
         tags = [
             TemplateTag("for", "django.template.defaulttags", None),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=None)
+        printables = format_as_table(tags, catalog=None)
 
-        table = module_tables[0]
+        table = printables[0]
+        assert isinstance(table, Table)
         column_headers = [col.header for col in table.columns]
         assert "Spec" not in column_headers
 
@@ -405,13 +404,14 @@ type = "standalone"
             TemplateTag("for", "django.template.defaulttags", None, has_spec=True),
             TemplateTag("if", "django.template.defaulttags", None, has_spec=False),
         ]
-        module_tables, overall, summary = format_as_table(tags, catalog=catalog)
+        printables = format_as_table(tags, catalog=catalog)
 
-        assert isinstance(module_tables, list)
-        assert isinstance(overall, CoverageStats)
-        assert isinstance(summary, Table)
-        assert overall.total == 2
-        assert overall.documented == 1
+        assert isinstance(printables, list)
+        assert len(printables) == 3
+        assert isinstance(printables[0], Table)
+        assert isinstance(printables[1], str)
+        assert "Overall Coverage" in printables[1]
+        assert isinstance(printables[2], Table)
 
     def test_with_catalog_has_spec_column(self, tmp_path):
         catalog = tmp_path / "catalog.toml"
@@ -429,9 +429,10 @@ type = "standalone"
         tags = [
             TemplateTag("for", "django.template.defaulttags", None, has_spec=True),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=catalog)
+        printables = format_as_table(tags, catalog=catalog)
 
-        table = module_tables[0]
+        table = printables[0]
+        assert isinstance(table, Table)
         column_headers = [col.header for col in table.columns]
         assert "Spec" in column_headers
 
@@ -440,9 +441,10 @@ type = "standalone"
             TemplateTag("for", "django.template.defaulttags", None),
             TemplateTag("custom", "myapp.tags", None),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=None)
+        printables = format_as_table(tags, catalog=None)
 
-        assert len(module_tables) == 2
+        tables = [p for p in printables if isinstance(p, Table)]
+        assert len(tables) == 2
 
     def test_sorts_by_module_and_name(self):
         tags = [
@@ -450,42 +452,46 @@ type = "standalone"
             TemplateTag("apple", "module.a", None),
             TemplateTag("banana", "module.a", None),
         ]
-        module_tables, _, _ = format_as_table(tags, catalog=None)
+        printables = format_as_table(tags, catalog=None)
 
-        assert len(module_tables) == 2
+        tables = [p for p in printables if isinstance(p, Table)]
+        assert len(tables) == 2
 
     def test_library_column_conditional(self):
         tags_no_library = [
             TemplateTag("for", "django.template.defaulttags", None),
         ]
-        tables_no_lib, _, _ = format_as_table(tags_no_library, catalog=None)
-        columns_no_lib = [col.header for col in tables_no_lib[0].columns]
+        printables_no_lib = format_as_table(tags_no_library, catalog=None)
+        table_no_lib = printables_no_lib[0]
+        assert isinstance(table_no_lib, Table)
+        columns_no_lib = [col.header for col in table_no_lib.columns]
         assert "Library" not in columns_no_lib
 
         tags_with_library = [
             TemplateTag("static", "django.templatetags.static", "static"),
         ]
-        tables_with_lib, _, _ = format_as_table(tags_with_library, catalog=None)
-        columns_with_lib = [col.header for col in tables_with_lib[0].columns]
+        printables_with_lib = format_as_table(tags_with_library, catalog=None)
+        table_with_lib = printables_with_lib[0]
+        assert isinstance(table_with_lib, Table)
+        columns_with_lib = [col.header for col in table_with_lib.columns]
         assert "Library" in columns_with_lib
 
     def test_empty_list(self):
-        module_tables, overall, summary = format_as_table([], catalog=None)
+        printables = format_as_table([], catalog=None)
 
-        assert module_tables == []
-        assert overall is None
-        assert summary is None
+        assert printables == []
 
     def test_group_by_module_default(self):
         tags = [
             TemplateTag("tag1", "django.template.defaulttags", None),
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
         ]
-        module_tables, _, _ = format_as_table(
+        printables = format_as_table(
             tags, catalog=None, group_by=GroupBy.MODULE
         )
 
-        assert len(module_tables) == 2
+        tables = [p for p in printables if isinstance(p, Table)]
+        assert len(tables) == 2
 
     def test_group_by_package(self):
         tags = [
@@ -493,11 +499,12 @@ type = "standalone"
             TemplateTag("tag2", "django.contrib.humanize.templatetags.humanize", None),
             TemplateTag("tag3", "myapp.templatetags.tags", None),
         ]
-        module_tables, _, _ = format_as_table(
+        printables = format_as_table(
             tags, catalog=None, group_by=GroupBy.PACKAGE
         )
 
-        assert len(module_tables) == 2
+        tables = [p for p in printables if isinstance(p, Table)]
+        assert len(tables) == 2
 
 
 class TestListTagsCommand:
