@@ -268,6 +268,36 @@ Flatten a catalog into a single document:
 djts flatten catalogs/djtagspecs.toml -o combined.toml
 ```
 
+List installed Django template tags:
+
+```bash
+djts list-tags
+```
+
+This introspects your Django project to discover all available template tags. Useful options:
+
+- `--format json|csv|table` - Output format (default: table)
+- `--group-by module|package` - Group tags by full module path or top-level package
+- `--catalog path/to/catalog.toml` - Show TagSpec coverage statistics
+- `--status all|missing|documented` - Filter by TagSpec coverage (requires `--catalog`)
+- `--module`, `--library`, `--name` - Filter by pattern
+
+Examples:
+
+```bash
+# View all Django built-in tags
+djts list-tags --module django
+
+# Export to JSON grouped by package
+djts list-tags --format json --group-by package
+
+# Check TagSpec coverage for a specific library
+djts list-tags --catalog djtagspecs.toml --status missing
+
+# Get CSV of all i18n tags
+djts list-tags --format csv --library i18n
+```
+
 ### Packaged Catalogs
 
 Libraries may ship TagSpec manifests inside their Python distributions. These documents can be referenced with a `pkg://` URI, which resolves data bundled alongside a module via `importlib.resources`:

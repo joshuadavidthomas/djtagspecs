@@ -1,0 +1,32 @@
+version = "0.4.0"
+engine = "django"
+
+[[libraries]]
+module = "django.template.defaulttags"
+
+[[libraries.tags]]
+name = "for"
+type = "block"
+
+[[libraries.tags]]
+name = "if"
+type = "block"
+
+[[libraries.tags]]
+name = "autoescape"
+type = "block"
+
+[[libraries]]
+module = "django.template.loader_tags"
+
+[[libraries.tags]]
+name = "block"
+type = "block"
+
+[[libraries.tags]]
+name = "extends"
+type = "standalone"
+
+[[libraries.tags]]
+name = "include"
+type = "loader"

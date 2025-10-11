@@ -21,6 +21,7 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 ### Added
 
 - Added support for Python 3.14
+- Added `list-tags` command to display installed Django template tags with filtering, grouping, and multiple output formats
 
 ## [0.4.0]
 

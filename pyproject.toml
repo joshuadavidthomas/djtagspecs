@@ -20,7 +20,9 @@ authors = [
     { name = "Josh Thomas", email = "josh@joshthomas.dev" }
 ]
 dependencies = [
+    "django>=4.2",
     "pydantic>=2.11.9",
+    "rich>=14.2.0",
     "tomli>=2.0.1;python_version<'3.11'",
     "tomli-w>=1.0.0",
     "typer>=0.19.1",
