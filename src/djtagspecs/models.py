@@ -167,7 +167,7 @@ class TagArg(BaseModel):
     kind: TagArgKind
     count: int | None = Field(None)
     extra: dict[str, Any] | None = Field(None)
-    
+
     @field_validator("count")
     @classmethod
     def validate_count_non_negative(cls, v: int | None) -> int | None:

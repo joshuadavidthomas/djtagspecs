@@ -210,7 +210,7 @@ def test_tag_arg_count_none_default() -> None:
 def test_tag_arg_count_integer() -> None:
     arg = TagArg(name="test", kind="variable", count=1)
     assert arg.count == 1
-    
+
     arg = TagArg(name="test", kind="variable", count=3)
     assert arg.count == 3
 
@@ -232,9 +232,9 @@ def test_tag_arg_count_serialization() -> None:
         args=[
             TagArg(name="arg1", kind="variable", count=1),
             TagArg(name="arg2", kind="variable"),
-        ]
+        ],
     )
-    
+
     data = tag.model_dump(by_alias=True, exclude_none=True)
     assert data["args"][0]["count"] == 1
     assert "count" not in data["args"][1]
@@ -255,13 +255,13 @@ def test_tag_arg_count_in_full_spec() -> None:
                             TagArg(name="value", kind="variable", count=1),
                             TagArg(name="max_value", kind="variable", count=1),
                             TagArg(name="max_width", kind="variable", count=1),
-                        ]
+                        ],
                     )
-                ]
+                ],
             )
-        ]
+        ],
     )
-    
+
     assert spec.libraries[0].tags[0].args[0].count == 1
     assert spec.libraries[0].tags[0].args[1].count == 1
     assert spec.libraries[0].tags[0].args[2].count == 1
