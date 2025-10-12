@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from djtagspecs import Tag
+from djtagspecs import TagArg
 from djtagspecs import TagLibrary
 from djtagspecs import TagSpec
 from djtagspecs import __version__
@@ -199,3 +200,68 @@ def test_explicit_end_requires_name() -> None:
         Tag.model_validate({"name": "hero", "type": "block", "end": {"name": ""}})
 
     assert "MUST provide a name" in str(excinfo.value)
+
+
+def test_tag_arg_count_none_default() -> None:
+    arg = TagArg(name="test", kind="variable")
+    assert arg.count is None
+
+
+def test_tag_arg_count_integer() -> None:
+    arg = TagArg(name="test", kind="variable", count=1)
+    assert arg.count == 1
+    
+    arg = TagArg(name="test", kind="variable", count=3)
+    assert arg.count == 3
+
+
+def test_tag_arg_count_zero_valid() -> None:
+    arg = TagArg(name="test", kind="variable", count=0)
+    assert arg.count == 0
+
+
+def test_tag_arg_count_negative_invalid() -> None:
+    with pytest.raises(ValueError, match="count must be non-negative"):
+        TagArg(name="test", kind="variable", count=-1)
+
+
+def test_tag_arg_count_serialization() -> None:
+    tag = Tag(
+        name="test",
+        type="standalone",
+        args=[
+            TagArg(name="arg1", kind="variable", count=1),
+            TagArg(name="arg2", kind="variable"),
+        ]
+    )
+    
+    data = tag.model_dump(by_alias=True, exclude_none=True)
+    assert data["args"][0]["count"] == 1
+    assert "count" not in data["args"][1]
+
+
+def test_tag_arg_count_in_full_spec() -> None:
+    spec = TagSpec(
+        version="0.5.0",
+        engine="django",
+        libraries=[
+            TagLibrary(
+                module="test.tags",
+                tags=[
+                    Tag(
+                        name="widthratio",
+                        type="standalone",
+                        args=[
+                            TagArg(name="value", kind="variable", count=1),
+                            TagArg(name="max_value", kind="variable", count=1),
+                            TagArg(name="max_width", kind="variable", count=1),
+                        ]
+                    )
+                ]
+            )
+        ]
+    )
+    
+    assert spec.libraries[0].tags[0].args[0].count == 1
+    assert spec.libraries[0].tags[0].args[1].count == 1
+    assert spec.libraries[0].tags[0].args[2].count == 1
