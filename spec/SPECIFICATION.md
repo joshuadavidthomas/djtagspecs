@@ -288,6 +288,14 @@ or end tag—exposes the following members:
 - `required` — boolean indicating whether the argument is mandatory. Defaults to `true`.
 - `type` — enumerated string (`TagArgType`) describing how the argument can be supplied. `"both"` (default) means positional or keyword usage is accepted, `"positional"` restricts to positional usage, and `"keyword"` restricts to keyword usage.
 - `kind` — enumerated discriminator (`TagArgKind`) that selects the additional constraints described below.
+- `count` — optional non-negative integer specifying the exact number of tokens this argument consumes.
+    - When omitted or `null`, the argument is treated as an expression with variable token count. The language server validates only presence (via `required`) without enforcing a specific token count.
+    - When set to an integer `N`, the language server MUST validate that exactly `N` tokens are consumed by this argument.
+    - Typical values:
+        - `count = 1` for single discrete values (most common for fixed arguments)
+        - `count = 2, 3, ...` for arguments that consume multiple specific tokens
+        - `count` omitted for expression arguments (`if` conditions, `for` patterns, etc.)
+    - When multiple arguments are defined in sequence with explicit `count` values, consumers SHOULD validate each argument's token count independently and in order.
 - `extra` — optional object for implementation-specific metadata such as analyser hints.
 
 #### Argument name
@@ -343,7 +351,7 @@ Consumers MUST interpret omitted members according to these defaults, regardless
 - `tag.args`, `end.args`, and `intermediate.args` default to empty arrays, signalling that no argument presence or arity checks are enforced until definitions appear. `intermediates` defaults to an empty array, signalling that no intermediate markers are required.
 - `end.required` defaults to `true`.
 - `block` tags without an explicit `end` are normalised using the defaults in [End Tag Defaults](#end-tag-defaults).
-- `arg.required` defaults to `true`; `arg.type` defaults to `"both"`.
+- `arg.required` defaults to `true`; `arg.type` defaults to `"both"`; `arg.count` defaults to `null` (unspecified). Consumers MUST NOT enforce token count validation when `count` is `null`, but SHOULD still validate argument presence when `required = true`.
 - `intermediate.position` defaults to `"any"`; `min` and `max` default to `null` (meaning unspecified).
 
 When producing a serialized form, implementations MAY omit members whose values equal the defaults above.
@@ -419,6 +427,7 @@ A consumer MUST reject a TagSpec document if any of the following hold:
 - Any of `tag.args`, `intermediate.args`, or `end.args` contain duplicate `name` values within the same argument list.
 - Multiple intermediates within the same tag specify `position = "last"`.
 - The `extends` chain contains circular references (for example, A extends B, B extends C, C extends A).
+- If `arg.count` is provided, it MUST be a non-negative integer.
 
 Consumers SHOULD surface additional diagnostics when template usage violates the structural constraints spelled out by the spec (for example, too many intermediates, missing required arguments, or illegal modifier placement). The exact reporting format is implementation-defined.
 
@@ -512,7 +521,8 @@ position = "last"
 
 [[libraries.tags.args]]
 name = "condition"
-kind = "any"
+kind = "variable"
+# count omitted (null) - variable expression, don't validate token count
 ```
 
 ### Minimal Loader Tag

@@ -165,7 +165,15 @@ class TagArg(BaseModel):
     required: bool = Field(True)
     argtype: TagArgType = Field("both", alias="type")
     kind: TagArgKind
+    count: int | None = Field(None)
     extra: dict[str, Any] | None = Field(None)
+
+    @field_validator("count")
+    @classmethod
+    def validate_count_non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("count must be non-negative")
+        return v
 
 
 TagArgType = Literal["both", "positional", "keyword"]

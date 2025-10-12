@@ -18,6 +18,10 @@ and this project attempts to adhere to [Semantic Versioning](https://semver.org/
 
 ## [Unreleased]
 
+### Added
+
+- Added optional `count` field to tag arguments for token count validation. When set to an integer, it validates exact token counts for discrete arguments (e.g., `count = 1`). When omitted, it allows variable-arity expressions without token count constraints.
+
 ## [0.5.0]
 
 ### Added

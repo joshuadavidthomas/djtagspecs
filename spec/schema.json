@@ -173,6 +173,18 @@
     },
     "TagArg": {
       "properties": {
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
         "extra": {
           "anyOf": [
             {
