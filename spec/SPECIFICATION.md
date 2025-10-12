@@ -600,69 +600,11 @@ type = "standalone"
 [[libraries.tags.args]]
 name = "pattern"
 kind = "literal"
-count = 1  # Exactly one token
 
 [[libraries.tags.args]]
 name = "as"
 kind = "syntax"
 required = false
-count = 1
-```
-
-### Example: `widthratio` Tag with Fixed Token Counts
-
-The `widthratio` tag expects exactly three discrete arguments:
-
-```toml
-version = "0.5.0"
-engine = "django"
-
-[[libraries]]
-module = "django.template.defaulttags"
-
-[[libraries.tags]]
-name = "widthratio"
-type = "standalone"
-
-[[libraries.tags.args]]
-name = "value"
-kind = "variable"
-required = true
-count = 1  # Exactly one token
-
-[[libraries.tags.args]]
-name = "max_value"
-kind = "variable"
-required = true
-count = 1  # Exactly one token
-
-[[libraries.tags.args]]
-name = "max_width"
-kind = "variable"
-required = true
-count = 1  # Exactly one token
-```
-
-### Example: `extends` Tag with Single Token
-
-The `extends` tag takes exactly one template path:
-
-```toml
-version = "0.5.0"
-engine = "django"
-
-[[libraries]]
-module = "django.template.loader_tags"
-
-[[libraries.tags]]
-name = "extends"
-type = "loader"
-
-[[libraries.tags.args]]
-name = "parent_template"
-kind = "variable"
-required = true
-count = 1  # Exactly one token expected
 ```
 
 ## Reference Schema and Implementation
