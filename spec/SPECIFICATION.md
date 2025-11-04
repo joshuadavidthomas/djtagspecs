@@ -1,7 +1,7 @@
 # TagSpecs
 
 <dl>
-    <dt>Version:</dt><dd><code>0.5.0</code></dd>
+    <dt>Version:</dt><dd><code>0.6.0</code></dd>
     <dt>Author:</dt><dd>Josh Thomas</dd>
     <dt>Status:</dt><dd>Draft / Pre-1.0</dd>
     <dt>Created:</dt><dd>2025-09-20</dd>
@@ -379,7 +379,7 @@ Given a base catalog that exports a minimal `hero` block tag:
 
 ```toml
 # catalogs/base.toml
-version = "0.5.0"
+version = "0.6.0"
 
 [[libraries]]
 module = "myapp.templatetags.hero"
@@ -463,7 +463,7 @@ An inline configuration uses the same structure as standalone files. For example
 
 ```toml
 [tool.djtagspecs]
-version = "0.5.0"
+version = "0.6.0"
 engine = "django"
 
 [[tool.djtagspecs.libraries]]
@@ -494,7 +494,7 @@ The examples below highlight the minimal declaration for each tag type and show 
 A block tag can be published with only its name and type. Consumers will synthesise `end<name>` (`endif` in this case) and will not enforce any argument or intermediate structure until it is declared.
 
 ```toml
-version = "0.5.0"
+version = "0.6.0"
 engine = "django"
 
 [[libraries]]
@@ -530,7 +530,7 @@ kind = "variable"
 Loader tags default to single-node behaviour when they omit `end`. This minimal spec accepts any argument list until details are supplied.
 
 ```toml
-version = "0.5.0"
+version = "0.6.0"
 engine = "django"
 
 [[libraries]]
@@ -576,7 +576,7 @@ required = false
 Standalone tags must remain single-node and therefore omit `end` and `intermediates`. With no argument definitions, tooling accepts any argument list until authors provide stricter guidance.
 
 ```toml
-version = "0.5.0"
+version = "0.6.0"
 engine = "django"
 
 [[libraries]]
